@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API_URL from '../config';
+import { formatDate } from '../utils/dateUtils';
 
 const QuestionAnalysis = ({ question, userId, onClose }) => {
     const [analysis, setAnalysis] = useState(null);
@@ -174,7 +175,7 @@ const QuestionAnalysis = ({ question, userId, onClose }) => {
                                                 Your answer: <strong>{attempt.user_answer}</strong>
                                             </div>
                                             <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                                {new Date(attempt.attempted_at).toLocaleString()}
+                                                {formatDate(attempt.attempted_at)}
                                             </div>
                                         </div>
                                     ))}

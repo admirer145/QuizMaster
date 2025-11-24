@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API_URL from '../config';
+import { formatDate } from '../utils/dateUtils';
 
 const QuizAttempts = ({ quizId, userId, onViewReport, onBack }) => {
     const [attempts, setAttempts] = useState([]);
@@ -21,16 +22,7 @@ const QuizAttempts = ({ quizId, userId, onViewReport, onBack }) => {
         }
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+
 
     if (loading) {
         return (

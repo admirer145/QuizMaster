@@ -1,5 +1,6 @@
 import React from 'react';
 import API_URL from '../config';
+import { formatDate } from '../utils/dateUtils';
 
 const Leaderboard = ({ onBack }) => {
     const [scores, setScores] = React.useState([]);
@@ -223,14 +224,8 @@ const Leaderboard = ({ onBack }) => {
                                         )}
                                     </td>
                                 )}
-                                <td style={{ padding: '1rem', textAlign: 'left', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                                    {new Date(entry.completed_at).toLocaleDateString(undefined, {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
+                                <td style={{ padding: '1rem', textAlign: 'left', fontSize: '0.9rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                    {formatDate(entry.completed_at)}
                                 </td>
                                 <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{entry.score}</td>
                             </tr>
