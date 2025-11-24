@@ -1,22 +1,28 @@
+# Build output
+dist/
+build/
+.vercel/
+
 # Dependencies
 node_modules/
 package-lock.json
+yarn.lock
 
 # Environment variables
 .env
 .env.local
+.env.production.local
+.env.development.local
 
 # Database
 *.db
 *.sqlite
+quizmaster.db
 
 # Logs
 logs/
 *.log
-
-# Build outputs
-dist/
-build/
+npm-debug.log*
 
 # IDE
 .vscode/
@@ -27,3 +33,10 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Testing
+coverage/
+
+# Temporary files
+*.tmp
+.cache/

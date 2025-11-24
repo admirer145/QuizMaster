@@ -229,6 +229,20 @@ QuizMaster/
 - **Performance**: Optimized queries and efficient rendering
 - **Accessibility**: Semantic HTML and readable typography
 
+## 🚀 Deployment
+
+### Vercel Deployment
+
+This project is configured for easy deployment to Vercel. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+
+**Quick Deploy:**
+1. Push to GitHub
+2. Import to Vercel
+3. Set environment variables in Vercel dashboard
+4. Deploy!
+
+**Note:** For production use with Socket.IO, consider deploying the backend separately on Railway or Render for better WebSocket support.
+
 ## 📝 License
 
 This project is open source and available under the MIT License.
