@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import AuthForm from './components/AuthForm';
+import Home from './components/Home';
 import QuizSetup from './components/QuizSetup';
 import QuizGame from './components/QuizGame';
 import Leaderboard from './components/Leaderboard';
@@ -9,15 +10,16 @@ import QuizReport from './components/QuizReport';
 import QuizAttempts from './components/QuizAttempts';
 import MyQuizzes from './components/MyQuizzes';
 import QuizCreator from './components/QuizCreator';
-// import QuizHub from './components/QuizHub';
+import QuizHub from './components/QuizHub';
 import AIGenerator from './components/AIGenerator';
 import QuizReview from './components/QuizReview';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
-  const [view, setView] = useState('menu'); // menu, game, leaderboard, report, attempts, my-quizzes, creator, hub, ai-generator, review
+  const [view, setView] = useState('home'); // home, menu, game, leaderboard, report, attempts, my-quizzes, creator, hub, ai-generator, review
   const [activeQuizId, setActiveQuizId] = useState(null);
   const [activeResultId, setActiveResultId] = useState(null);
+  const [editQuizId, setEditQuizId] = useState(null);
 
   if (!user) {
     return (
@@ -55,8 +57,8 @@ const AppContent = () => {
     setView('menu');
   };
 
-  const backToAttempts = () => {
-    // Keep activeQuizId, just change view
+  const backToAttempts = (quizId) => {
+    if (quizId) setActiveQuizId(quizId);
     setActiveResultId(null);
     setView('attempts');
   };
@@ -120,6 +122,17 @@ const AppContent = () => {
             flexWrap: 'wrap'
           }}>
             <button
+              onClick={() => setView('home')}
+              style={{
+                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
+                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                minWidth: 'auto',
+                background: view === 'home' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'rgba(255,255,255,0.1)'
+              }}
+            >
+              🏠 Home
+            </button>
+            <button
               onClick={() => setView('hub')}
               style={{
                 padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
@@ -128,7 +141,7 @@ const AppContent = () => {
                 background: view === 'hub' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
               }}
             >
-              Quiz Hub
+              🌐 Quiz Hub
             </button>
             <button
               onClick={() => setView('my-quizzes')}
@@ -194,31 +207,49 @@ const AppContent = () => {
         </div>
       </header>
 
+      {view === 'home' && (
+        <Home
+          onStartQuiz={startQuiz}
+          onViewReport={showReport}
+        />
+      )}
       {view === 'menu' && <QuizSetup onStartQuiz={startQuiz} onViewAttempts={viewAttempts} />}
       {view === 'game' && <QuizGame quizId={activeQuizId} onEndGame={endGame} onShowReport={showReport} />}
       {view === 'leaderboard' && <Leaderboard onBack={backToMenu} />}
-      {view === 'report' && <QuizReport resultId={activeResultId} onBackToMenu={backToMenu} onBackToAttempts={backToAttempts} />}
-      {view === 'attempts' && <QuizAttempts quizId={activeQuizId} userId={user.id} onViewReport={showReport} onBack={backToMenu} />}
+      {view === 'report' && <QuizReport resultId={activeResultId} onBackToMenu={() => setView('home')} onBackToAttempts={backToAttempts} />}
+      {view === 'attempts' && <QuizAttempts quizId={activeQuizId} userId={user.id} onViewReport={showReport} onBack={() => setView('home')} />}
 
       {view === 'my-quizzes' && (
         <MyQuizzes
-          onEdit={(id) => console.log('Edit', id)}
-          onCreate={() => setView('creator')}
+          onEdit={(id) => {
+            setEditQuizId(id);
+            setView('creator');
+          }}
+          onCreate={() => {
+            setEditQuizId(null);
+            setView('creator');
+          }}
           onBack={backToMenu}
         />
       )}
       {view === 'creator' && (
         <QuizCreator
-          onBack={() => setView('my-quizzes')}
-          onCreated={() => setView('my-quizzes')}
+          editQuizId={editQuizId}
+          onBack={() => {
+            setEditQuizId(null);
+            setView('my-quizzes');
+          }}
+          onCreated={() => {
+            setEditQuizId(null);
+            setView('my-quizzes');
+          }}
         />
       )}
-      {/* {view === 'hub' && (
+      {view === 'hub' && (
         <QuizHub
-          onStartQuiz={startQuiz}
           onBack={backToMenu}
         />
-      )} */}
+      )}
       {view === 'ai-generator' && (
         <AIGenerator
           onBack={backToMenu}

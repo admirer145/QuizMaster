@@ -9,6 +9,7 @@ const QuizReview = ({ onBack }) => {
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
+    const [currentQuizDetails, setCurrentQuizDetails] = useState(null);
     const [reviewComment, setReviewComment] = useState('');
 
     useEffect(() => {
@@ -34,6 +35,23 @@ const QuizReview = ({ onBack }) => {
         }
     };
 
+    const startReview = async (quizId) => {
+        try {
+            setSelectedQuiz(quizId);
+            const response = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch quiz details');
+            const data = await response.json();
+            setCurrentQuizDetails(data);
+        } catch (err) {
+            showError(err.message);
+            setSelectedQuiz(null);
+        }
+    };
+
     const handleReview = async (quizId, status) => {
         try {
             const response = await fetch(`${API_URL}/api/quizzes/${quizId}/review`, {
@@ -47,6 +65,7 @@ const QuizReview = ({ onBack }) => {
             if (!response.ok) throw new Error('Failed to review quiz');
             showSuccess(`Quiz ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
             setSelectedQuiz(null);
+            setCurrentQuizDetails(null);
             setReviewComment('');
             fetchPendingQuizzes();
         } catch (err) {
@@ -139,6 +158,43 @@ const QuizReview = ({ onBack }) => {
                                     </div>
                                     {selectedQuiz === quiz.id && (
                                         <div style={{ marginTop: '1rem' }}>
+                                            {/* Questions Preview */}
+                                            {currentQuizDetails && (
+                                                <div style={{ marginBottom: '1.5rem' }}>
+                                                    <h4 style={{ marginBottom: '1rem' }}>Questions Preview</h4>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                        {currentQuizDetails.questions?.map((q, idx) => (
+                                                            <div key={q.id || idx} style={{
+                                                                background: 'rgba(0,0,0,0.2)',
+                                                                padding: '1rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid var(--glass-border)'
+                                                            }}>
+                                                                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
+                                                                    Q{idx + 1}: {q.text}
+                                                                </div>
+                                                                {q.type === 'multiple_choice' && q.options && (
+                                                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginLeft: '1rem' }}>
+                                                                        {q.options.map((opt, i) => (
+                                                                            <div key={i} style={{
+                                                                                color: opt === q.correctAnswer ? '#22c55e' : 'inherit'
+                                                                            }}>
+                                                                                {opt} {opt === q.correctAnswer && '✓'}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {q.type === 'true_false' && (
+                                                                    <div style={{ fontSize: '0.9rem', color: '#22c55e', marginLeft: '1rem' }}>
+                                                                        Correct Answer: {q.correctAnswer}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                                                 Review Comments (optional)
                                             </label>
@@ -189,6 +245,7 @@ const QuizReview = ({ onBack }) => {
                                             <button
                                                 onClick={() => {
                                                     setSelectedQuiz(null);
+                                                    setCurrentQuizDetails(null);
                                                     setReviewComment('');
                                                 }}
                                                 style={{
@@ -201,7 +258,7 @@ const QuizReview = ({ onBack }) => {
                                         </>
                                     ) : (
                                         <button
-                                            onClick={() => setSelectedQuiz(quiz.id)}
+                                            onClick={() => startReview(quiz.id)}
                                             style={{
                                                 background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
                                                 padding: '0.75rem'

@@ -76,7 +76,7 @@ const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
                 }}>
                     {onBackToAttempts && (
                         <button
-                            onClick={onBackToAttempts}
+                            onClick={() => onBackToAttempts(report.quiz_id)}
                             style={{
                                 padding: '0.5rem 1rem',
                                 fontSize: '0.9rem',
@@ -98,7 +98,7 @@ const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
                             minWidth: '140px'
                         }}
                     >
-                        ← Back to Menu
+                        ← Back to Home
                     </button>
                 </div>
 
@@ -285,7 +285,7 @@ const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
                     onClick={onBackToMenu}
                     style={{ marginTop: '2rem', width: '100%' }}
                 >
-                    Back to Menu
+                    Back to Home
                 </button>
             </div>
 

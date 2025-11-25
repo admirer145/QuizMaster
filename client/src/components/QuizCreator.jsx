@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
-const QuizCreator = ({ onBack, onCreated }) => {
+const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
     const { token } = useAuth();
     const { showSuccess, showError } = useToast();
     const [step, setStep] = useState(1); // 1: Details, 2: Questions
@@ -20,6 +20,39 @@ const QuizCreator = ({ onBack, onCreated }) => {
         correctAnswer: ''
     });
     const [questionCount, setQuestionCount] = useState(0);
+    const [loading, setLoading] = useState(!!editQuizId);
+
+    // Load quiz data if editing
+    useEffect(() => {
+        if (editQuizId) {
+            fetchQuizData();
+        }
+    }, [editQuizId]);
+
+    const fetchQuizData = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/quizzes/${editQuizId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch quiz');
+            const data = await response.json();
+
+            setQuizData({
+                title: data.title,
+                category: data.category,
+                difficulty: data.difficulty
+            });
+            setCreatedQuizId(editQuizId);
+            setQuestionCount(data.questions?.length || 0);
+            setStep(2); // Go directly to adding questions
+            setLoading(false);
+        } catch (err) {
+            showError(err.message);
+            setLoading(false);
+        }
+    };
 
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
@@ -89,6 +122,15 @@ const QuizCreator = ({ onBack, onCreated }) => {
         setCurrentQuestion({ ...currentQuestion, options: newOptions });
     };
 
+    if (loading) {
+        return (
+            <div className="glass-card" style={{ maxWidth: '800px', width: '100%' }}>
+                <h2>Loading quiz...</h2>
+                <div className="skeleton" style={{ height: '200px' }} />
+            </div>
+        );
+    }
+
     return (
         <div className="glass-card" style={{ maxWidth: '800px', width: '100%' }}>
             {/* Header with Progress */}
@@ -102,11 +144,11 @@ const QuizCreator = ({ onBack, onCreated }) => {
             }}>
                 <div>
                     <h2 style={{ margin: 0, marginBottom: '0.5rem' }}>
-                        {step === 1 ? 'Create New Quiz' : `Add Questions`}
+                        {editQuizId ? 'Edit Quiz' : (step === 1 ? 'Create New Quiz' : 'Add Questions')}
                     </h2>
                     {step === 2 && (
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            Quiz: {quizData.title} • {questionCount} questions added
+                            Quiz: {quizData.title} • {questionCount} questions {editQuizId && '(editing)'}
                         </p>
                     )}
                 </div>
@@ -345,15 +387,29 @@ const QuizCreator = ({ onBack, onCreated }) => {
                     </form>
 
                     <button
-                        onClick={onCreated}
+                        onClick={() => {
+                            if (questionCount < 5) {
+                                showError('Please add at least 5 questions before finishing');
+                                return;
+                            }
+                            onCreated();
+                        }}
+                        disabled={questionCount < 5}
                         style={{
                             width: '100%',
                             padding: '1rem',
-                            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3))',
-                            border: '2px solid rgba(34, 197, 94, 0.5)'
+                            background: questionCount >= 5
+                                ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3))'
+                                : 'rgba(148, 163, 184, 0.2)',
+                            border: questionCount >= 5
+                                ? '2px solid rgba(34, 197, 94, 0.5)'
+                                : '2px solid rgba(148, 163, 184, 0.3)',
+                            color: questionCount >= 5 ? '#22c55e' : '#94a3b8',
+                            cursor: questionCount >= 5 ? 'pointer' : 'not-allowed',
+                            opacity: questionCount >= 5 ? 1 : 0.6
                         }}
                     >
-                        ✓ Finish & View My Quizzes
+                        ✓ Finish & View My Quizzes {questionCount < 5 && `(${questionCount}/5 questions)`}
                     </button>
                 </div>
             )}

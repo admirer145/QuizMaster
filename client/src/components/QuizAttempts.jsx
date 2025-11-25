@@ -197,7 +197,7 @@ const QuizAttempts = ({ quizId, userId, onViewReport, onBack }) => {
             {/* Back Button */}
             <button
                 onClick={onBack}
-                style={{ marginTop: '2rem', width: '100%' }}
+                style={{ marginTop: '2rem', width: '100%', marginLeft: '1rem' }}
             >
                 Back to Quizzes
             </button>

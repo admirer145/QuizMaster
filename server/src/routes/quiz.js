@@ -25,6 +25,147 @@ router.get('/my-quizzes', authenticateToken, async (req, res) => {
     }
 });
 
+// Add quiz to user's library
+router.post('/:id/add-to-library', authenticateToken, async (req, res) => {
+    try {
+        const db = require('../db');
+        const quizId = req.params.id;
+        const userId = req.user.id;
+
+        db.run(
+            'INSERT INTO user_quiz_library (user_id, quiz_id) VALUES (?, ?)',
+            [userId, quizId],
+            function (err) {
+                if (err) {
+                    if (err.message.includes('UNIQUE')) {
+                        return res.status(400).json({ error: 'Quiz already in library' });
+                    }
+                    return res.status(500).json({ error: err.message });
+                }
+                res.json({ message: 'Quiz added to library', id: this.lastID });
+            }
+        );
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Remove quiz from user's library
+router.delete('/:id/remove-from-library', authenticateToken, async (req, res) => {
+    try {
+        const db = require('../db');
+        const quizId = req.params.id;
+        const userId = req.user.id;
+
+        db.run(
+            'DELETE FROM user_quiz_library WHERE user_id = ? AND quiz_id = ?',
+            [userId, quizId],
+            function (err) {
+                if (err) return res.status(500).json({ error: err.message });
+                // Make this idempotent - success even if quiz wasn't in library
+                res.json({
+                    message: 'Quiz removed from library',
+                    wasInLibrary: this.changes > 0
+                });
+            }
+        );
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// Delete quiz (only draft or rejected) - MUST come after more specific routes like /remove-from-library
+router.delete('/delete/:id', authenticateToken, async (req, res) => {
+    try {
+        const db = require('../db');
+        const quizId = req.params.id;
+        const userId = req.user.id;
+
+        console.log('DELETE /delete/:id called for quiz:', quizId, 'by user:', userId);
+
+        // Check if quiz exists
+        db.get(
+            'SELECT * FROM quizzes WHERE id = ?',
+            [quizId],
+            (err, quiz) => {
+                if (err) {
+                    console.error('Delete quiz error:', err);
+                    return res.status(500).json({ error: err.message });
+                }
+                if (!quiz) {
+                    console.log('Quiz not found:', quizId);
+                    return res.status(404).json({ error: 'Quiz not found' });
+                }
+
+                console.log('Quiz found:', { id: quiz.id, creator_id: quiz.creator_id, status: quiz.status });
+
+                // Check if user owns the quiz (if creator_id exists)
+                if (quiz.creator_id && quiz.creator_id !== userId) {
+                    console.log('Authorization failed: user', userId, 'does not own quiz created by', quiz.creator_id);
+                    return res.status(403).json({ error: 'Not authorized to delete this quiz' });
+                }
+
+                // Only allow deletion of draft or rejected quizzes
+                if (quiz.status !== 'draft' && quiz.status !== 'rejected') {
+                    console.log('Status check failed: quiz status is', quiz.status);
+                    return res.status(403).json({
+                        error: `Cannot delete ${quiz.status} quizzes. Only draft or rejected quizzes can be deleted.`
+                    });
+                }
+
+                // Delete quiz (cascade will handle questions)
+                db.run('DELETE FROM quizzes WHERE id = ?', [quizId], function (deleteErr) {
+                    if (deleteErr) {
+                        console.error('Delete execution error:', deleteErr);
+                        return res.status(500).json({ error: deleteErr.message });
+                    }
+                    console.log('Quiz deleted successfully:', quizId);
+                    res.json({ message: 'Quiz deleted successfully' });
+                });
+            }
+        );
+    } catch (err) {
+        console.error('Delete quiz catch error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get user's quiz library (recently added + completed)
+router.get('/my-library', authenticateToken, async (req, res) => {
+    try {
+        const db = require('../db');
+        const userId = req.user.id;
+
+        db.all(
+            `SELECT 
+                q.*,
+                uql.added_at,
+                (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questionCount,
+                r.id as result_id,
+                r.score,
+                r.completed_at
+            FROM user_quiz_library uql
+            JOIN quizzes q ON uql.quiz_id = q.id
+            LEFT JOIN results r ON r.quiz_id = q.id AND r.user_id = ?
+            WHERE uql.user_id = ?
+            ORDER BY uql.added_at DESC`,
+            [userId, userId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ error: err.message });
+
+                // Separate into recently added (not completed) and completed
+                const recentlyAdded = rows.filter(r => !r.result_id);
+                const completed = rows.filter(r => r.result_id);
+
+                res.json({ recentlyAdded, completed });
+            }
+        );
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Get all quizzes (Admin/Debug or public fallback? Keeping as is for now but maybe restrict?)
 // For now, let's keep it but maybe it should only return public ones? 
 // The requirement says "any other user can search for any topics... and pull those quizzes".

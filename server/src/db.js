@@ -102,6 +102,17 @@ function initializeSchema() {
       FOREIGN KEY(quiz_id) REFERENCES quizzes(id),
       FOREIGN KEY(reviewer_id) REFERENCES users(id)
     )`);
+
+    // User Quiz Library Table
+    db.run(`CREATE TABLE IF NOT EXISTS user_quiz_library (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      quiz_id INTEGER NOT NULL,
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(quiz_id) REFERENCES quizzes(id),
+      UNIQUE(user_id, quiz_id)
+    )`);
   });
 }
 
