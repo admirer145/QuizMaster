@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import AuthForm from './components/AuthForm';
 import Home from './components/Home';
-import QuizSetup from './components/QuizSetup';
+// import QuizSetup from './components/QuizSetup'; // Removed as per user request
 import QuizGame from './components/QuizGame';
 import Leaderboard from './components/Leaderboard';
 import QuizReport from './components/QuizReport';
@@ -13,10 +13,12 @@ import QuizCreator from './components/QuizCreator';
 import QuizHub from './components/QuizHub';
 import AIGenerator from './components/AIGenerator';
 import QuizReview from './components/QuizReview';
+import UserProfile from './components/UserProfile';
+import Logo from './components/Logo';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
-  const [view, setView] = useState('home'); // home, menu, game, leaderboard, report, attempts, my-quizzes, creator, hub, ai-generator, review
+  const [view, setView] = useState('home'); // home, menu, game, leaderboard, report, attempts, my-quizzes, creator, hub, ai-generator, review, profile
   const [activeQuizId, setActiveQuizId] = useState(null);
   const [activeResultId, setActiveResultId] = useState(null);
   const [editQuizId, setEditQuizId] = useState(null);
@@ -38,7 +40,7 @@ const AppContent = () => {
 
   const endGame = () => {
     setActiveQuizId(null);
-    setView('menu');
+    setView('home');
   };
 
   const showReport = (resultId) => {
@@ -54,7 +56,7 @@ const AppContent = () => {
   const backToMenu = () => {
     setActiveQuizId(null);
     setActiveResultId(null);
-    setView('menu');
+    setView('home');
   };
 
   const backToAttempts = (quizId) => {
@@ -90,21 +92,48 @@ const AppContent = () => {
             gap: '1rem',
             flexWrap: 'wrap'
           }}>
-            <h1
-              onClick={() => setView('menu')}
+            <div
+              onClick={() => setView('home')}
+              className="hover-scale"
               style={{
-                fontSize: 'clamp(1.25rem, 5vw, 2rem)',
-                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
                 cursor: 'pointer',
-                transition: 'color 0.3s ease',
                 userSelect: 'none',
-                flexShrink: 0
+                padding: '0.5rem',
+                borderRadius: '12px',
+                transition: 'background 0.3s ease'
               }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--primary)'}
-              onMouseLeave={(e) => e.target.style.color = 'inherit'}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
-              QuizMaster
-            </h1>
+              <Logo size={48} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <h1 style={{
+                  fontSize: 'clamp(1.5rem, 4vw, 1.8rem)',
+                  margin: 0,
+                  fontWeight: '800',
+                  letterSpacing: '-0.5px',
+                  background: 'linear-gradient(135deg, #fff 0%, #cbd5e1 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  lineHeight: 1
+                }}>
+                  QuizMaster
+                </h1>
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  fontWeight: '600',
+                  marginTop: '0.2rem'
+                }}>
+                  Master Every Topic
+                </span>
+              </div>
+            </div>
             <span style={{
               fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)',
               color: 'var(--text-muted)',
@@ -168,16 +197,31 @@ const AppContent = () => {
             >
               ✨ AI Generate
             </button>
+            {user.role === 'admin' && (
+              <button
+                onClick={() => setView('review')}
+                style={{
+                  padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
+                  fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                  minWidth: 'auto',
+                  background: view === 'review' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
+                }}
+              >
+                Review Quizzes
+              </button>
+            )}
             <button
-              onClick={() => setView('review')}
+              onClick={() => setView('profile')}
               style={{
                 padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
                 fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
                 minWidth: 'auto',
-                background: view === 'review' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
+                background: view === 'profile'
+                  ? 'linear-gradient(135deg, #a855f7, #7c3aed)'
+                  : 'rgba(255,255,255,0.1)'
               }}
             >
-              Review Quizzes
+              👤 Profile
             </button>
             <button
               onClick={() => setView('leaderboard')}
@@ -213,7 +257,7 @@ const AppContent = () => {
           onViewReport={showReport}
         />
       )}
-      {view === 'menu' && <QuizSetup onStartQuiz={startQuiz} onViewAttempts={viewAttempts} />}
+      {/* {view === 'menu' && <QuizSetup onStartQuiz={startQuiz} onViewAttempts={viewAttempts} />} */}
       {view === 'game' && <QuizGame quizId={activeQuizId} onEndGame={endGame} onShowReport={showReport} />}
       {view === 'leaderboard' && <Leaderboard onBack={backToMenu} />}
       {view === 'report' && <QuizReport resultId={activeResultId} onBackToMenu={() => setView('home')} onBackToAttempts={backToAttempts} />}
@@ -258,6 +302,11 @@ const AppContent = () => {
       )}
       {view === 'review' && (
         <QuizReview
+          onBack={backToMenu}
+        />
+      )}
+      {view === 'profile' && (
+        <UserProfile
           onBack={backToMenu}
         />
       )}

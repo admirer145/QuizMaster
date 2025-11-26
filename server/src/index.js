@@ -25,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/results', require('./routes/results'));
+app.use('/api/profile', require('./routes/profile'));
 
 // Socket.io Logic
 io.on('connection', (socket) => {
@@ -72,15 +73,18 @@ io.on('connection', (socket) => {
         socket.emit('answer_result', { correct: isCorrect, correctAnswer: question.correctAnswer });
     });
 
-    socket.on('save_result', ({ quizId, score }) => {
+    socket.on('save_result', async ({ quizId, score, timeTaken }) => {
         const session = gameManager.getSession(socket.id);
         if (!session) return;
 
         const db = require('./db');
+        const analyticsService = require('./services/analyticsService');
+        const achievementService = require('./services/achievementService');
+
         db.run(
             'INSERT INTO results (user_id, quiz_id, score) VALUES (?, ?, ?)',
             [session.userId, quizId, score],
-            function (err) {
+            async function (err) {
                 if (err) {
                     console.error('Error saving result:', err);
                     socket.emit('result_saved', { success: false });
@@ -97,8 +101,30 @@ io.on('connection', (socket) => {
                         }
                     );
 
-                    // Send result ID back to client for navigation
-                    socket.emit('result_saved', { success: true, resultId: resultId });
+                    // Update user stats
+                    try {
+                        await analyticsService.updateUserStats(session.userId, score, timeTaken || 0);
+                        await analyticsService.updateStreak(session.userId);
+
+                        // Check for new achievements
+                        const newAchievements = await achievementService.checkAndAwardAchievements(session.userId);
+
+                        // Send result ID and achievements back to client
+                        socket.emit('result_saved', {
+                            success: true,
+                            resultId: resultId,
+                            newAchievements: newAchievements.map(a => ({
+                                id: a.id,
+                                name: a.name,
+                                description: a.description,
+                                icon: a.icon
+                            }))
+                        });
+                    } catch (statsErr) {
+                        console.error('Error updating stats/achievements:', statsErr);
+                        // Still send success since result was saved
+                        socket.emit('result_saved', { success: true, resultId: resultId });
+                    }
                 }
             }
         );

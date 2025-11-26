@@ -2,7 +2,7 @@ const db = require('../db');
 const { MultipleChoiceQuestion, TrueFalseQuestion } = require('./Question');
 
 class Quiz {
-    constructor(id, title, category, difficulty, questions = [], creator_id = null, is_public = false, status = 'draft', created_at = null) {
+    constructor(id, title, category, difficulty, questions = [], creator_id = null, is_public = false, status = 'draft', created_at = null, source = 'manual') {
         this.id = id;
         this.title = title;
         this.category = category;
@@ -12,16 +12,17 @@ class Quiz {
         this.is_public = is_public;
         this.status = status;
         this.created_at = created_at;
+        this.source = source;
     }
 
-    static async create(title, category, difficulty, creator_id = null) {
+    static async create(title, category, difficulty, creator_id = null, source = 'manual') {
         return new Promise((resolve, reject) => {
             db.run(
-                'INSERT INTO quizzes (title, category, difficulty, creator_id) VALUES (?, ?, ?, ?)',
-                [title, category, difficulty, creator_id],
+                'INSERT INTO quizzes (title, category, difficulty, creator_id, source) VALUES (?, ?, ?, ?, ?)',
+                [title, category, difficulty, creator_id, source],
                 function (err) {
                     if (err) return reject(err);
-                    resolve(new Quiz(this.lastID, title, category, difficulty, [], creator_id));
+                    resolve(new Quiz(this.lastID, title, category, difficulty, [], creator_id, false, 'draft', null, source));
                 }
             );
         });
@@ -94,7 +95,8 @@ class Quiz {
             quizData.creator_id,
             quizData.is_public,
             quizData.status,
-            quizData.created_at
+            quizData.created_at,
+            quizData.source
         );
     }
 

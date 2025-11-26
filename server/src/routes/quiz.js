@@ -1,9 +1,30 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const authenticateToken = require('../middleware/authMiddleware');
+const documentParser = require('../services/documentParser');
+const aiQuizGenerator = require('../services/aiQuizGenerator');
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const upload = multer({
+    dest: 'uploads/',
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['application/pdf', 'text/plain'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only PDF and TXT files are allowed.'));
+        }
+    }
+});
 
 // Get public quizzes (Quiz Hub)
 router.get('/public', async (req, res) => {
@@ -138,25 +159,46 @@ router.get('/my-library', authenticateToken, async (req, res) => {
         const userId = req.user.id;
 
         db.all(
-            `SELECT 
-                q.*,
-                uql.added_at,
+            `SELECT DISTINCT
+                q.id,
+                q.title,
+                q.category,
+                q.difficulty,
+                q.creator_id,
+                q.is_public,
+                q.status,
+                q.created_at,
+                q.source,
+                MAX(uql.added_at) as added_at,
                 (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questionCount,
-                r.id as result_id,
-                r.score,
-                r.completed_at
+                (SELECT COUNT(*) FROM results WHERE quiz_id = q.id AND user_id = ?) as attemptCount,
+                (SELECT MAX(completed_at) FROM results WHERE quiz_id = q.id AND user_id = ?) as lastAttemptDate,
+                (SELECT id FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as result_id,
+                (SELECT score FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as score,
+                (SELECT completed_at FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as completed_at
             FROM user_quiz_library uql
             JOIN quizzes q ON uql.quiz_id = q.id
-            LEFT JOIN results r ON r.quiz_id = q.id AND r.user_id = ?
             WHERE uql.user_id = ?
-            ORDER BY uql.added_at DESC`,
-            [userId, userId],
+            GROUP BY q.id
+            ORDER BY MAX(uql.added_at) DESC`,
+            [userId, userId, userId, userId, userId, userId],
             (err, rows) => {
                 if (err) return res.status(500).json({ error: err.message });
 
                 // Separate into recently added (not completed) and completed
                 const recentlyAdded = rows.filter(r => !r.result_id);
-                const completed = rows.filter(r => r.result_id);
+
+                // For completed quizzes, sort by most recent attempt
+                const completed = rows
+                    .filter(r => r.result_id)
+                    .sort((a, b) => new Date(b.lastAttemptDate) - new Date(a.lastAttemptDate));
+
+                console.log('=== MY-LIBRARY DEBUG ===');
+                console.log('Total rows:', rows.length);
+                console.log('Recently added:', recentlyAdded.length);
+                console.log('Completed:', completed.length);
+                console.log('Completed quiz IDs:', completed.map(q => q.id));
+                console.log('========================');
 
                 res.json({ recentlyAdded, completed });
             }
@@ -277,7 +319,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
         const title = `AI Generated: ${topic}`;
         const category = 'AI Generated';
 
-        const quiz = await Quiz.create(title, category, difficulty, req.user.id);
+        const quiz = await Quiz.create(title, category, difficulty, req.user.id, 'ai');
 
         // Add some mock questions
         const mockQuestions = [
@@ -294,6 +336,146 @@ router.post('/generate', authenticateToken, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Generate Quiz from Document
+router.post('/generate-from-document', authenticateToken, upload.single('document'), async (req, res) => {
+    let filePath = null;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No document uploaded' });
+        }
+
+        filePath = req.file.path;
+        const config = JSON.parse(req.body.config || '{}');
+
+        console.log('Document upload received:', {
+            filename: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            config
+        });
+
+        // Step 1: Extract text from document
+        const extractedText = await documentParser.parseDocument(filePath, req.file.mimetype);
+
+        if (!extractedText || extractedText.length < 100) {
+            throw new Error('Document content is too short or could not be extracted');
+        }
+
+        console.log('Text extracted, length:', extractedText.length);
+
+        // Step 2: Generate quiz using AI
+        const questions = await aiQuizGenerator.generateQuiz(extractedText, config);
+
+        if (!questions || questions.length === 0) {
+            throw new Error('Failed to generate questions from document');
+        }
+
+        console.log('Generated questions:', questions.length);
+
+        // Step 3: Format questions for frontend (don't save to DB yet)
+        const title = `${config.category || 'Document'} Quiz - ${req.file.originalname}`;
+        const category = config.category || 'Document-based';
+        const difficulty = config.difficulty || 'medium';
+
+        const formattedQuestions = aiQuizGenerator.formatQuestionsForDB(questions);
+
+        // Clean up uploaded file
+        await fs.unlink(filePath);
+
+        // Return quiz data without saving to DB
+        res.status(200).json({
+            title,
+            category,
+            difficulty,
+            questions: formattedQuestions,
+            source: 'ai_document'
+        });
+    } catch (err) {
+        console.error('Document quiz generation error:', err);
+
+        // Clean up uploaded file on error
+        if (filePath) {
+            try {
+                await fs.unlink(filePath);
+            } catch (unlinkErr) {
+                console.error('Error deleting file:', unlinkErr);
+            }
+        }
+
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+// Save document-generated quiz (after user confirms)
+router.post('/save-document-quiz', authenticateToken, async (req, res) => {
+    try {
+        const { title, category, difficulty, questions } = req.body;
+
+        if (!title || !category || !questions || questions.length < 5) {
+            return res.status(400).json({ error: 'Invalid quiz data' });
+        }
+
+        // Create quiz in database
+        const quiz = await Quiz.create(title, category, difficulty, req.user.id, 'ai_document');
+
+        // Add questions to quiz
+        for (const question of questions) {
+            await Quiz.addQuestion(quiz.id, question);
+        }
+
+        // Fetch complete quiz with questions
+        const completeQuiz = await Quiz.getById(quiz.id);
+
+        res.status(201).json(completeQuiz);
+    } catch (err) {
+        console.error('Save document quiz error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update quiz questions (for editing generated quizzes)
+router.put('/:id/update-questions', authenticateToken, async (req, res) => {
+    try {
+        const quizId = req.params.id;
+        const { questions } = req.body;
+
+        // Verify ownership
+        const quiz = await Quiz.getById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz not found' });
+        }
+        if (quiz.creator_id !== req.user.id) {
+            return res.status(403).json({ error: 'You can only update your own quizzes' });
+        }
+
+        const db = require('../db');
+
+        // Delete existing questions
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM questions WHERE quiz_id = ?', [quizId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        // Add new questions
+        for (const question of questions) {
+            await Quiz.addQuestion(quizId, question);
+        }
+
+        // Fetch updated quiz
+        const updatedQuiz = await Quiz.getById(quizId);
+
+        res.json(updatedQuiz);
+    } catch (err) {
+        console.error('Update questions error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // Add a question to a quiz
 router.post('/:id/questions', authenticateToken, async (req, res) => {

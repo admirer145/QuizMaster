@@ -2,15 +2,15 @@ const db = require('../db');
 const bcrypt = require('bcrypt');
 
 class User {
-    static async create(username, password) {
+    static async create(username, password, role = 'user') {
         const hashedPassword = await bcrypt.hash(password, 10);
         return new Promise((resolve, reject) => {
             db.run(
-                'INSERT INTO users (username, password) VALUES (?, ?)',
-                [username, hashedPassword],
+                'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+                [username, hashedPassword, role],
                 function (err) {
                     if (err) return reject(err);
-                    resolve({ id: this.lastID, username });
+                    resolve({ id: this.lastID, username, role });
                 }
             );
         });

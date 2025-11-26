@@ -1,10 +1,13 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import { formatDate } from '../utils/dateUtils';
 
 const Leaderboard = ({ onBack }) => {
+    const { token } = useAuth();
     const [scores, setScores] = React.useState([]);
-    const [filter, setFilter] = React.useState('best'); // 'best' or 'all'
+    const [filter, setFilter] = React.useState('first'); // 'first' or 'all'
+    const [myQuizzesOnly, setMyQuizzesOnly] = React.useState(false);
     const [page, setPage] = React.useState(1);
     const [totalPages, setTotalPages] = React.useState(1);
     const [search, setSearch] = React.useState({
@@ -31,10 +34,15 @@ const Leaderboard = ({ onBack }) => {
             limit: 10,
             player: debouncedSearch.player,
             quiz: debouncedSearch.quiz,
-            attempt: debouncedSearch.attempt
+            attempt: debouncedSearch.attempt,
+            myQuizzesOnly
         });
 
-        fetch(`${API_URL}/api/leaderboard?${queryParams}`)
+        fetch(`${API_URL}/api/leaderboard?${queryParams}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.meta) {
@@ -46,7 +54,7 @@ const Leaderboard = ({ onBack }) => {
                 }
             })
             .catch(err => console.error(err));
-    }, [filter, page, debouncedSearch]);
+    }, [filter, page, debouncedSearch, myQuizzesOnly, token]);
 
     const handleSearchChange = (field, value) => {
         setSearch(prev => ({ ...prev, [field]: value }));
@@ -69,49 +77,80 @@ const Leaderboard = ({ onBack }) => {
                 <div style={{
                     display: 'flex',
                     gap: '0.5rem',
-                    background: 'rgba(0,0,0,0.3)',
-                    padding: '0.25rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--glass-border)'
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
                 }}>
+                    {/* My Quizzes Toggle */}
                     <button
-                        onClick={() => { setFilter('best'); setPage(1); }}
+                        onClick={() => { setMyQuizzesOnly(!myQuizzesOnly); setPage(1); }}
                         style={{
                             padding: '0.5rem 1.2rem',
                             borderRadius: '10px',
-                            border: 'none',
-                            background: filter === 'best'
+                            border: '1px solid var(--glass-border)',
+                            background: myQuizzesOnly
                                 ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
-                                : 'transparent',
-                            color: 'white',
+                                : 'rgba(255, 255, 255, 0.05)',
+                            color: myQuizzesOnly ? 'white' : 'var(--text-muted)',
                             cursor: 'pointer',
                             fontSize: '0.9rem',
-                            fontWeight: filter === 'best' ? '600' : '400',
+                            fontWeight: myQuizzesOnly ? '600' : '400',
                             transition: 'all 0.3s ease',
-                            opacity: filter === 'best' ? 1 : 0.6
+                            marginRight: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
                         }}
                     >
-                        Best Scores
+                        {myQuizzesOnly ? '✓' : ''} Participated Only
                     </button>
-                    <button
-                        onClick={() => { setFilter('all'); setPage(1); }}
-                        style={{
-                            padding: '0.5rem 1.2rem',
-                            borderRadius: '10px',
-                            border: 'none',
-                            background: filter === 'all'
-                                ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
-                                : 'transparent',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            fontWeight: filter === 'all' ? '600' : '400',
-                            transition: 'all 0.3s ease',
-                            opacity: filter === 'all' ? 1 : 0.6
-                        }}
-                    >
-                        All Attempts
-                    </button>
+
+                    <div style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        background: 'rgba(0,0,0,0.3)',
+                        padding: '0.25rem',
+                        borderRadius: '12px',
+                        border: '1px solid var(--glass-border)'
+                    }}>
+                        <button
+                            onClick={() => { setFilter('first'); setPage(1); }}
+                            style={{
+                                padding: '0.5rem 1.2rem',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: filter === 'first'
+                                    ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
+                                    : 'transparent',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: filter === 'first' ? '600' : '400',
+                                transition: 'all 0.3s ease',
+                                opacity: filter === 'first' ? 1 : 0.6
+                            }}
+                        >
+                            First Attempt
+                        </button>
+                        <button
+                            onClick={() => { setFilter('all'); setPage(1); }}
+                            style={{
+                                padding: '0.5rem 1.2rem',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: filter === 'all'
+                                    ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
+                                    : 'transparent',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: filter === 'all' ? '600' : '400',
+                                transition: 'all 0.3s ease',
+                                opacity: filter === 'all' ? 1 : 0.6
+                            }}
+                        >
+                            All Attempts
+                        </button>
+                    </div>
                 </div>
             </div>
 

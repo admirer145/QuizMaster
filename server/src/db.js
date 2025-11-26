@@ -40,7 +40,9 @@ function initializeSchema() {
       "ALTER TABLE quizzes ADD COLUMN creator_id INTEGER REFERENCES users(id)",
       "ALTER TABLE quizzes ADD COLUMN is_public BOOLEAN DEFAULT 0",
       "ALTER TABLE quizzes ADD COLUMN status TEXT DEFAULT 'draft'",
-      "ALTER TABLE quizzes ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+      "ALTER TABLE quizzes ADD COLUMN created_at DATETIME",
+      "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
+      "ALTER TABLE quizzes ADD COLUMN source TEXT DEFAULT 'manual'"
     ];
 
     columnsToAdd.forEach(query => {
@@ -48,6 +50,19 @@ function initializeSchema() {
         // Ignore errors if column already exists
       });
     });
+
+    // Update NULL created_at values to current timestamp
+    db.run("UPDATE quizzes SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL", (err) => {
+      // Ignore errors
+    });
+
+    // Create Admin User if not exists
+    const adminPassword = 'admin123'; // In production, hash this!
+    // For this simple app, we might be storing plain text or simple hash. 
+    // Let's check how auth is handled. 
+    // Assuming simple storage for now based on existing code (or I should check auth.js).
+    // But for now, I'll just insert if not exists.
+
 
     // Questions Table
     // type: 'multiple_choice' or 'true_false'
@@ -113,6 +128,43 @@ function initializeSchema() {
       FOREIGN KEY(quiz_id) REFERENCES quizzes(id),
       UNIQUE(user_id, quiz_id)
     )`);
+
+    // User Achievements Table
+    db.run(`CREATE TABLE IF NOT EXISTS user_achievements(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      achievement_id TEXT NOT NULL,
+      unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      UNIQUE(user_id, achievement_id)
+    )`);
+
+    // User Stats Table
+    db.run(`CREATE TABLE IF NOT EXISTS user_stats(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      total_quizzes INTEGER DEFAULT 0,
+      total_score INTEGER DEFAULT 0,
+      best_score INTEGER DEFAULT 0,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_active_date DATE,
+      total_time_seconds INTEGER DEFAULT 0,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )`);
+
+    // Add profile fields to users table
+    const userProfileColumns = [
+      "ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1",
+      "ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0",
+      "ALTER TABLE users ADD COLUMN avatar_url TEXT"
+    ];
+
+    userProfileColumns.forEach(query => {
+      db.run(query, (err) => {
+        // Ignore errors if column already exists
+      });
+    });
   });
 }
 

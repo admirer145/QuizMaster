@@ -165,22 +165,37 @@ const Home = ({ onStartQuiz, onViewReport }) => {
                 )}
             </div>
 
-            {/* Action Button */}
-            <button
-                onClick={() => isCompleted ? onViewReport(quiz.result_id) : onStartQuiz(quiz.id)}
-                style={{
-                    marginTop: 'auto',
-                    width: '100%',
-                    background: isCompleted
-                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))'
-                        : 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                    border: isCompleted ? '1px solid rgba(99, 102, 241, 0.5)' : 'none',
-                    padding: '0.75rem',
-                    fontSize: '0.95rem'
-                }}
-            >
-                {isCompleted ? '📊 View Report' : '▶️ Start Quiz'}
-            </button>
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                {isCompleted && (
+                    <button
+                        onClick={() => onStartQuiz(quiz.id)}
+                        style={{
+                            flex: 1,
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            padding: '0.75rem',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        🔄 Retake {quiz.attemptCount > 1 ? `(${quiz.attemptCount} attempts)` : ''}
+                    </button>
+                )}
+                <button
+                    onClick={() => isCompleted ? onViewReport(quiz.result_id) : onStartQuiz(quiz.id)}
+                    style={{
+                        flex: 1,
+                        background: isCompleted
+                            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))'
+                            : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                        border: isCompleted ? '1px solid rgba(99, 102, 241, 0.5)' : 'none',
+                        padding: '0.75rem',
+                        fontSize: '0.95rem'
+                    }}
+                >
+                    {isCompleted ? '📊 View Report' : '▶️ Start Quiz'}
+                </button>
+            </div>
         </div>
     );
 
