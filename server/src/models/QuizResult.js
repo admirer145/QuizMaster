@@ -25,8 +25,8 @@ class QuizResult {
      * Get comprehensive quiz report with all question attempts
      */
     static async getQuizReport(resultId) {
-        // Get result details
-        const resultPromise = new Promise((resolve, reject) => {
+        // Get result details first to get the quiz_id
+        const result = await new Promise((resolve, reject) => {
             db.get(
                 `SELECT r.*, q.title as quiz_title, q.category, q.difficulty, u.username
                 FROM results r
@@ -41,15 +41,18 @@ class QuizResult {
             );
         });
 
-        // Get all question attempts for this result
-        const attemptsPromise = new Promise((resolve, reject) => {
+        if (!result) return null;
+
+        // Get all questions for this quiz and join with attempts
+        const questionsWithAttempts = await new Promise((resolve, reject) => {
             db.all(
-                `SELECT qa.*, q.question_text, q.type, q.options, q.correct_answer
-                FROM question_attempts qa
-                JOIN questions q ON qa.question_id = q.id
-                WHERE qa.result_id = ?
-                ORDER BY qa.attempted_at ASC`,
-                [resultId],
+                `SELECT q.id as question_id, q.question_text, q.type, q.options, q.correct_answer,
+                        qa.id as attempt_id, qa.user_answer, qa.is_correct, qa.time_taken_seconds, qa.attempted_at
+                FROM questions q
+                LEFT JOIN question_attempts qa ON q.id = qa.question_id AND qa.result_id = ?
+                WHERE q.quiz_id = ?
+                ORDER BY q.id ASC`,
+                [resultId, result.quiz_id],
                 (err, rows) => {
                     if (err) return reject(err);
                     resolve(rows);
@@ -57,15 +60,19 @@ class QuizResult {
             );
         });
 
-        const [result, attempts] = await Promise.all([resultPromise, attemptsPromise]);
-
-        if (!result) return null;
-
-        // Parse options for multiple choice questions
-        const formattedAttempts = attempts.map(attempt => ({
-            ...attempt,
-            options: attempt.options ? JSON.parse(attempt.options) : null,
-            is_correct: Boolean(attempt.is_correct)
+        // Parse options and format attempts
+        const formattedAttempts = questionsWithAttempts.map(row => ({
+            id: row.attempt_id || `unattempted-${row.question_id}`, // Generate ID for unattempted
+            question_id: row.question_id,
+            question_text: row.question_text,
+            type: row.type,
+            options: row.options ? JSON.parse(row.options) : null,
+            correct_answer: row.correct_answer,
+            user_answer: row.user_answer,
+            is_correct: Boolean(row.is_correct),
+            time_taken_seconds: row.time_taken_seconds || 0,
+            attempted_at: row.attempted_at,
+            status: row.attempt_id ? (row.is_correct ? 'correct' : 'incorrect') : 'unattempted'
         }));
 
         return {

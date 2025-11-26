@@ -167,117 +167,137 @@ const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {report.attempts.map((attempt, index) => (
-                        <div
-                            key={attempt.id}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.03)',
-                                border: `2px solid ${attempt.is_correct ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                                borderRadius: '12px',
-                                padding: '1.5rem',
-                                transition: 'all 0.3s ease'
-                            }}
-                        >
-                            {/* Question Header */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                        <span style={{
-                                            fontSize: '0.85rem',
-                                            fontWeight: 'bold',
-                                            color: 'var(--text-muted)',
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            padding: '0.25rem 0.75rem',
-                                            borderRadius: '6px'
-                                        }}>
-                                            Question {index + 1}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '0.85rem',
-                                            fontWeight: 'bold',
-                                            color: attempt.is_correct ? '#22c55e' : '#ef4444',
-                                            background: attempt.is_correct ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                            padding: '0.25rem 0.75rem',
-                                            borderRadius: '6px'
-                                        }}>
-                                            {attempt.is_correct ? '✓ Correct' : '✗ Incorrect'}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '0.85rem',
-                                            color: 'var(--text-muted)',
-                                            marginLeft: 'auto'
-                                        }}>
-                                            ⏱ {formatTime(attempt.time_taken_seconds)}
-                                        </span>
-                                    </div>
-                                    <p style={{ fontSize: '1.1rem', marginBottom: '1rem', lineHeight: '1.5' }}>
-                                        {attempt.question_text}
-                                    </p>
-                                </div>
-                            </div>
+                    {report.attempts.map((attempt, index) => {
+                        const isUnattempted = attempt.status === 'unattempted';
+                        const isCorrect = attempt.status === 'correct';
 
-                            {/* Answers Section */}
-                            <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
-                                {/* Your Answer */}
-                                <div style={{
-                                    background: attempt.is_correct
-                                        ? 'rgba(34, 197, 94, 0.1)'
-                                        : 'rgba(239, 68, 68, 0.1)',
-                                    border: `1px solid ${attempt.is_correct ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                                    borderRadius: '8px',
-                                    padding: '1rem'
-                                }}>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                        Your Answer
-                                    </div>
-                                    <div style={{ fontSize: '1rem', fontWeight: '500' }}>
-                                        {attempt.user_answer}
+                        let statusColor = '#ef4444'; // Red for incorrect
+                        let statusBg = 'rgba(239, 68, 68, 0.1)';
+                        let statusBorder = 'rgba(239, 68, 68, 0.3)';
+                        let statusText = '✗ Incorrect';
+
+                        if (isCorrect) {
+                            statusColor = '#22c55e';
+                            statusBg = 'rgba(34, 197, 94, 0.1)';
+                            statusBorder = 'rgba(34, 197, 94, 0.3)';
+                            statusText = '✓ Correct';
+                        } else if (isUnattempted) {
+                            statusColor = '#f59e0b'; // Amber for unattempted
+                            statusBg = 'rgba(245, 158, 11, 0.1)';
+                            statusBorder = 'rgba(245, 158, 11, 0.3)';
+                            statusText = '○ Unattempted';
+                        }
+
+                        return (
+                            <div
+                                key={attempt.id}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: `2px solid ${statusBorder}`,
+                                    borderRadius: '12px',
+                                    padding: '1.5rem',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                {/* Question Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                            <span style={{
+                                                fontSize: '0.85rem',
+                                                fontWeight: 'bold',
+                                                color: 'var(--text-muted)',
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                padding: '0.25rem 0.75rem',
+                                                borderRadius: '6px'
+                                            }}>
+                                                Question {index + 1}
+                                            </span>
+                                            <span style={{
+                                                fontSize: '0.85rem',
+                                                fontWeight: 'bold',
+                                                color: statusColor,
+                                                background: statusBg,
+                                                padding: '0.25rem 0.75rem',
+                                                borderRadius: '6px'
+                                            }}>
+                                                {statusText}
+                                            </span>
+                                            <span style={{
+                                                fontSize: '0.85rem',
+                                                color: 'var(--text-muted)',
+                                                marginLeft: 'auto'
+                                            }}>
+                                                ⏱ {formatTime(attempt.time_taken_seconds)}
+                                            </span>
+                                        </div>
+                                        <p style={{ fontSize: '1.1rem', marginBottom: '1rem', lineHeight: '1.5' }}>
+                                            {attempt.question_text}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Correct Answer (if wrong) */}
-                                {!attempt.is_correct && (
+                                {/* Answers Section */}
+                                <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
+                                    {/* Your Answer */}
                                     <div style={{
-                                        background: 'rgba(34, 197, 94, 0.1)',
-                                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                                        background: statusBg,
+                                        border: `1px solid ${statusBorder}`,
                                         borderRadius: '8px',
                                         padding: '1rem'
                                     }}>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                            Correct Answer
+                                            Your Answer
                                         </div>
-                                        <div style={{ fontSize: '1rem', fontWeight: '500', color: '#22c55e' }}>
-                                            {attempt.correct_answer}
+                                        <div style={{ fontSize: '1rem', fontWeight: '500', color: isUnattempted ? 'var(--text-muted)' : 'inherit', fontStyle: isUnattempted ? 'italic' : 'normal' }}>
+                                            {isUnattempted ? 'Not Attempted' : attempt.user_answer}
                                         </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Analysis Button */}
-                            <button
-                                onClick={() => handleAnalysisClick(attempt)}
-                                style={{
-                                    width: '100%',
-                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
-                                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                                    padding: '0.75rem',
-                                    borderRadius: '8px',
-                                    color: '#a5b4fc',
-                                    fontWeight: '500',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))';
-                                }}
-                            >
-                                📊 View Detailed Analysis
-                            </button>
-                        </div>
-                    ))}
+                                    {/* Correct Answer (if wrong or unattempted) */}
+                                    {!isCorrect && (
+                                        <div style={{
+                                            background: 'rgba(34, 197, 94, 0.1)',
+                                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                                            borderRadius: '8px',
+                                            padding: '1rem'
+                                        }}>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                                Correct Answer
+                                            </div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '500', color: '#22c55e' }}>
+                                                {attempt.correct_answer}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Analysis Button */}
+                                <button
+                                    onClick={() => handleAnalysisClick(attempt)}
+                                    style={{
+                                        width: '100%',
+                                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
+                                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                                        padding: '0.75rem',
+                                        borderRadius: '8px',
+                                        color: '#a5b4fc',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))';
+                                    }}
+                                >
+                                    📊 View Detailed Analysis
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Back Button */}

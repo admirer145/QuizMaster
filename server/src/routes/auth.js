@@ -15,6 +15,9 @@ router.post('/signup', async (req, res) => {
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
         res.status(201).json({ token, user: { id: user.id, username: user.username, role: user.role } });
     } catch (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+            return res.status(409).json({ error: 'Username already exists' });
+        }
         res.status(500).json({ error: 'Error creating user', details: err.message });
     }
 });

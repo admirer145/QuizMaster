@@ -34,37 +34,155 @@ const AuthForm = () => {
     };
 
     return (
-        <div className="glass-card" style={{ maxWidth: '400px', width: '100%' }}>
-            <h2>{isLogin ? 'Welcome Back' : 'Join QuizMaster'}</h2>
-            {error && <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{error}</div>}
+        <div className="glass-card" style={{
+            maxWidth: '400px',
+            width: '100%',
+            background: isLogin
+                ? 'rgba(30, 41, 59, 0.7)'
+                : 'rgba(15, 23, 42, 0.8)',
+            border: isLogin
+                ? '1px solid rgba(148, 163, 184, 0.1)'
+                : '1px solid rgba(99, 102, 241, 0.2)',
+            transition: 'all 0.3s ease'
+        }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{
+                    fontSize: '3rem',
+                    marginBottom: '1rem',
+                    filter: isLogin ? 'none' : 'drop-shadow(0 0 10px rgba(99, 102, 241, 0.5))'
+                }}>
+                    {isLogin ? '👋' : '🚀'}
+                </div>
+                <h2 style={{
+                    marginBottom: '0.5rem',
+                    background: isLogin
+                        ? 'linear-gradient(to right, #fff, #cbd5e1)'
+                        : 'linear-gradient(to right, #818cf8, #c084fc)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent'
+                }}>
+                    {isLogin ? 'Welcome Back!' : 'Join QuizMaster'}
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    {isLogin
+                        ? 'Enter your credentials to access your account'
+                        : 'Start your journey to becoming a Quiz Master'}
+                </p>
+            </div>
+
+            {error && (
+                <div style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    color: '#fca5a5',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.5rem',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                }}>
+                    <span>⚠️</span> {error}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <button type="submit" style={{ width: '100%' }}>
-                    {isLogin ? 'Login' : 'Sign Up'}
+                <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Username</label>
+                    <input
+                        type="text"
+                        placeholder="Enter your username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Password</label>
+                    <input
+                        type="password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            background: 'rgba(0, 0, 0, 0.2)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                </div>
+                <button
+                    type="submit"
+                    style={{
+                        width: '100%',
+                        padding: '0.875rem',
+                        background: isLogin
+                            ? 'linear-gradient(135deg, #4f46e5, #4338ca)'
+                            : 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s',
+                        boxShadow: isLogin
+                            ? '0 4px 12px rgba(79, 70, 229, 0.3)'
+                            : '0 4px 12px rgba(124, 58, 237, 0.3)'
+                    }}
+                    onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                    {isLogin ? 'Sign In' : 'Create Account'}
                 </button>
             </form>
-            <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <span
-                    style={{ color: 'var(--primary)', cursor: 'pointer' }}
-                    onClick={() => setIsLogin(!isLogin)}
+
+            <div style={{
+                marginTop: '2rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '0.9rem'
+            }}>
+                {isLogin ? "Don't have an account yet? " : "Already have an account? "}
+                <button
+                    onClick={() => {
+                        setIsLogin(!isLogin);
+                        setError('');
+                        setUsername('');
+                        setPassword('');
+                    }}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: isLogin ? '#818cf8' : '#c084fc',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        padding: 0,
+                        fontSize: 'inherit',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '4px'
+                    }}
                 >
                     {isLogin ? 'Sign Up' : 'Login'}
-                </span>
-            </p>
+                </button>
+            </div>
         </div>
     );
 };
