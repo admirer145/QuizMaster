@@ -266,7 +266,9 @@ const Leaderboard = ({ onBack }) => {
                                 <td style={{ padding: '1rem', textAlign: 'left', fontSize: '0.9rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                     {formatDate(entry.completed_at)}
                                 </td>
-                                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>{entry.score}</td>
+                                <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                    {entry.percentage}%
+                                </td>
                             </tr>
                         ))}
                     </tbody>

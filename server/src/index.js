@@ -119,8 +119,8 @@ io.on('connection', (socket) => {
 
                         // Update user stats with actual percentage
                         try {
-                            await analyticsService.updateUserStats(session.userId, actualPercentage, timeTaken || 0);
                             await analyticsService.updateStreak(session.userId);
+                            await analyticsService.updateUserStats(session.userId, actualPercentage, timeTaken || 0);
 
                             // Check for new achievements
                             const newAchievements = await achievementService.checkAndAwardAchievements(session.userId);

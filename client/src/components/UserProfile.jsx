@@ -8,14 +8,40 @@ import {
 } from 'recharts';
 
 const UserProfile = ({ onBack }) => {
-    const { user, token } = useAuth();
+    const { user, token, logout } = useAuth();
     const { showError } = useToast();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [activity, setActivity] = useState(null);
     const [trends, setTrends] = useState([]);
-    const [achievements, setAchievements] = useState({ unlocked: [], locked: [] });
+    const [achievements, setAchievements] = useState({ unlocked: [], locked: [], totalAchievements: 0, unlockedCount: 0 });
     const [recommendations, setRecommendations] = useState([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const handleDeleteClick = () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/profile`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                logout();
+            } else {
+                const data = await res.json();
+                showError(data.error || 'Failed to delete account');
+                setShowDeleteConfirm(false);
+            }
+        } catch (err) {
+            showError('Failed to delete account');
+            console.error(err);
+            setShowDeleteConfirm(false);
+        }
+    };
 
     useEffect(() => {
         if (user) {
@@ -25,7 +51,12 @@ const UserProfile = ({ onBack }) => {
 
     const fetchProfileData = async () => {
         try {
-            const [statsRes, activityRes, trendsRes, achievementsRes, recommendationsRes] = await Promise.all([
+            console.log('Fetching profile data for user:', user);
+            console.log('User ID:', user.id);
+            console.log('Token:', token ? 'exists' : 'missing');
+            console.log('API_URL:', API_URL);
+
+            const responses = await Promise.all([
                 fetch(`${API_URL}/api/profile/stats/${user.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
@@ -43,6 +74,22 @@ const UserProfile = ({ onBack }) => {
                 })
             ]);
 
+            console.log('All responses received:', responses.map(r => ({ url: r.url, status: r.status, ok: r.ok })));
+
+            // Check if any request failed
+            const failedResponse = responses.find(r => !r.ok);
+            if (failedResponse) {
+                if (failedResponse.status === 401 || failedResponse.status === 403) {
+                    showError('Session expired. Please login again.');
+                    logout();
+                    return;
+                }
+                console.error('Failed request:', failedResponse.url, failedResponse.status, failedResponse.statusText);
+                throw new Error(`Failed to fetch profile data: ${failedResponse.status} ${failedResponse.statusText}`);
+            }
+
+            const [statsRes, activityRes, trendsRes, achievementsRes, recommendationsRes] = responses;
+
             const statsData = await statsRes.json();
             const activityData = await activityRes.json();
             const trendsData = await trendsRes.json();
@@ -55,10 +102,16 @@ const UserProfile = ({ onBack }) => {
             setAchievements(achievementsData);
             setRecommendations(recommendationsData.recommendations || []);
         } catch (err) {
-            showError('Failed to load profile data');
-            console.error(err);
+            // Only show error if it wasn't a session expiry (which is handled above)
+            if (user) { // Check if user still exists (might have been logged out)
+                showError('Failed to load profile data');
+                console.error(err);
+                setStats(null);
+            }
         } finally {
-            setLoading(false);
+            if (user) { // Only update loading state if still logged in
+                setLoading(false);
+            }
         }
     };
 
@@ -98,7 +151,69 @@ const UserProfile = ({ onBack }) => {
     const { userStats, categoryStats, rank, improvementRate, difficultyDist } = stats;
 
     return (
-        <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexDirection: 'column', gap: '2rem', position: 'relative' }}>
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(5px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '1rem'
+                }}>
+                    <div className="glass-card" style={{
+                        maxWidth: '400px',
+                        width: '100%',
+                        textAlign: 'center',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+                        <h3 style={{ color: '#ef4444', marginBottom: '1rem' }}>Delete Account?</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+                            Are you sure you want to delete your account? This action <strong>cannot be undone</strong> and will permanently delete all your quizzes, results, and stats.
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--glass-border)',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                style={{
+                                    padding: '0.75rem 1.5rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                Yes, Delete Everything
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="glass-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -408,6 +523,31 @@ const UserProfile = ({ onBack }) => {
                     </div>
                 </div>
             )}
+
+            {/* Delete Account Section */}
+            <div className="glass-card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+                <h3 style={{ marginBottom: '1rem', color: '#ef4444' }}>Danger Zone</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                    Deleting your account is permanent. All your quizzes, results, and stats will be wiped out.
+                </p>
+                <button
+                    onClick={handleDeleteClick}
+                    style={{
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+                    onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+                >
+                    Delete Account
+                </button>
+            </div>
         </div>
     );
 };

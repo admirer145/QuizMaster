@@ -22,6 +22,10 @@ const AppContent = () => {
   const [activeQuizId, setActiveQuizId] = useState(null);
   const [activeResultId, setActiveResultId] = useState(null);
   const [editQuizId, setEditQuizId] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false);
 
   if (!user) {
     return (
@@ -31,7 +35,6 @@ const AppContent = () => {
       </div>
     );
   }
-
 
   const startQuiz = (quizId) => {
     setActiveQuizId(quizId);
@@ -67,6 +70,62 @@ const AppContent = () => {
 
   return (
     <div className="container">
+      <style>
+        {`
+          .nav-menu {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+          .nav-menu::-webkit-scrollbar {
+            display: none;
+          }
+          .menu-toggle {
+            display: none;
+          }
+          
+          @media (max-width: 768px) {
+            .nav-menu {
+              display: ${isMenuOpen ? 'flex' : 'none'};
+              flex-direction: column;
+              width: 100%;
+              overflow-x: visible;
+              padding-bottom: 0;
+            }
+            .menu-toggle {
+              display: block;
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              color: white;
+              padding: 0.5rem;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 1.2rem;
+            }
+            .user-greeting {
+              display: none; /* Hide greeting in top row on mobile to save space */
+            }
+            .mobile-greeting {
+              display: block;
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              padding: 0.5rem 0;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              margin-bottom: 0.5rem;
+            }
+          }
+          @media (min-width: 769px) {
+            .mobile-greeting {
+              display: none;
+            }
+          }
+        `}
+      </style>
       <header style={{
         position: 'sticky',
         top: 0,
@@ -75,16 +134,18 @@ const AppContent = () => {
         backdropFilter: 'blur(10px)',
         width: '100%',
         marginBottom: '2rem',
-        padding: 'clamp(0.75rem, 2vw, 1rem) clamp(0.75rem, 3vw, 1.5rem)',
+        padding: '1rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.75rem',
-          width: '100%'
+          gap: '1rem',
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '0 auto'
         }}>
-          {/* Top row: Logo and User greeting */}
+          {/* Top row: Logo, Greeting, Toggle */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -93,7 +154,7 @@ const AppContent = () => {
             flexWrap: 'wrap'
           }}>
             <div
-              onClick={() => setView('home')}
+              onClick={() => { setView('home'); closeMenu(); }}
               className="hover-scale"
               style={{
                 display: 'flex',
@@ -108,10 +169,10 @@ const AppContent = () => {
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
-              <Logo size={48} />
+              <Logo size={40} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <h1 style={{
-                  fontSize: 'clamp(1.5rem, 4vw, 1.8rem)',
+                  fontSize: '1.5rem',
                   margin: 0,
                   fontWeight: '800',
                   letterSpacing: '-0.5px',
@@ -123,7 +184,7 @@ const AppContent = () => {
                   QuizMaster
                 </h1>
                 <span style={{
-                  fontSize: '0.75rem',
+                  fontSize: '0.7rem',
                   color: 'var(--text-muted)',
                   letterSpacing: '2px',
                   textTransform: 'uppercase',
@@ -134,64 +195,95 @@ const AppContent = () => {
                 </span>
               </div>
             </div>
-            <span style={{
-              fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)',
-              color: 'var(--text-muted)',
-              whiteSpace: 'nowrap'
-            }}>
-              Hello, {user.username}
-            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span className="user-greeting" style={{
+                fontSize: '0.9rem',
+                color: 'var(--text-muted)',
+                whiteSpace: 'nowrap',
+                background: 'rgba(255, 255, 255, 0.05)',
+                padding: '0.5rem 1rem',
+                borderRadius: '20px'
+              }}>
+                Hello, {user.username}
+              </span>
+              <button className="menu-toggle" onClick={toggleMenu}>
+                {isMenuOpen ? '✕' : '☰'}
+              </button>
+            </div>
           </div>
 
-          {/* Bottom row: Action buttons */}
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            justifyContent: 'flex-end',
-            flexWrap: 'wrap'
-          }}>
+          {/* Bottom row: Action buttons (Collapsible) */}
+          <div className="nav-menu">
+            <div className="mobile-greeting">
+              Hello, {user.username}
+            </div>
             <button
-              onClick={() => setView('home')}
+              onClick={() => { setView('home'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
-                background: view === 'home' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'rgba(255,255,255,0.1)'
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                background: view === 'home' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
               }}
             >
               🏠 Home
             </button>
             <button
-              onClick={() => setView('hub')}
+              onClick={() => { setView('hub'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
-                background: view === 'hub' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                background: view === 'hub' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
               }}
             >
               🌐 Quiz Hub
             </button>
             <button
-              onClick={() => setView('my-quizzes')}
+              onClick={() => { setView('my-quizzes'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
-                background: view === 'my-quizzes' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                background: view === 'my-quizzes' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
               }}
             >
               My Quizzes
             </button>
             <button
-              onClick={() => setView('ai-generator')}
+              onClick={() => { setView('ai-generator'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
                 background: view === 'ai-generator'
                   ? 'linear-gradient(45deg, #ff00cc, #3333ff)'
                   : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
                 opacity: view === 'ai-generator' ? 1 : 0.7
               }}
             >
@@ -199,39 +291,57 @@ const AppContent = () => {
             </button>
             {user.role === 'admin' && (
               <button
-                onClick={() => setView('review')}
+                onClick={() => { setView('review'); closeMenu(); }}
                 style={{
-                  padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                  fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                  minWidth: 'auto',
-                  background: view === 'review' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.9rem',
+                  whiteSpace: 'nowrap',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: view === 'review' ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                  color: 'white',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 Review Quizzes
               </button>
             )}
             <button
-              onClick={() => setView('profile')}
+              onClick={() => { setView('profile'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
                 background: view === 'profile'
                   ? 'linear-gradient(135deg, #a855f7, #7c3aed)'
-                  : 'rgba(255,255,255,0.1)'
+                  : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
               }}
             >
               👤 Profile
             </button>
             <button
-              onClick={() => setView('leaderboard')}
+              onClick={() => { setView('leaderboard'); closeMenu(); }}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
-                minWidth: 'auto',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
                 background: view === 'leaderboard'
                   ? 'linear-gradient(135deg, var(--primary), var(--secondary))'
-                  : 'rgba(255,255,255,0.1)'
+                  : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease'
               }}
             >
               🏆 Leaderboard
@@ -239,10 +349,17 @@ const AppContent = () => {
             <button
               onClick={logout}
               style={{
-                padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
                 background: 'rgba(255,255,255,0.1)',
-                minWidth: 'auto'
+                color: 'white',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                marginLeft: 'auto'
               }}
             >
               Logout

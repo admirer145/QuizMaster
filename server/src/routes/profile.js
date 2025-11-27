@@ -160,4 +160,55 @@ router.put('/avatar', authenticateToken, async (req, res) => {
     }
 });
 
+// Delete user account
+router.delete('/', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    const db = require('../db');
+
+    try {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+
+            // 1. Delete question attempts linked to user's results
+            db.run(`DELETE FROM question_attempts WHERE user_id = ?`, [userId]);
+
+            // 2. Delete user's results
+            db.run(`DELETE FROM results WHERE user_id = ?`, [userId]);
+
+            // 3. Delete user stats
+            db.run(`DELETE FROM user_stats WHERE user_id = ?`, [userId]);
+
+            // 4. Delete user achievements
+            db.run(`DELETE FROM user_achievements WHERE user_id = ?`, [userId]);
+
+            // 5. Delete questions linked to quizzes created by user
+            db.run(`DELETE FROM questions WHERE quiz_id IN (SELECT id FROM quizzes WHERE creator_id = ?)`, [userId]);
+
+            // 6. Delete quizzes created by user
+            db.run(`DELETE FROM quizzes WHERE creator_id = ?`, [userId]);
+
+            // 7. Delete the user
+            db.run(`DELETE FROM users WHERE id = ?`, [userId], function (err) {
+                if (err) {
+                    console.error('Error deleting user:', err);
+                    db.run('ROLLBACK');
+                    return res.status(500).json({ error: 'Failed to delete account' });
+                }
+
+                db.run('COMMIT', (commitErr) => {
+                    if (commitErr) {
+                        console.error('Error committing transaction:', commitErr);
+                        return res.status(500).json({ error: 'Failed to commit deletion' });
+                    }
+                    res.json({ message: 'Account deleted successfully' });
+                });
+            });
+        });
+    } catch (err) {
+        console.error('Error in delete account route:', err);
+        db.run('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

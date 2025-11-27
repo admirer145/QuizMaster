@@ -166,7 +166,7 @@ const Home = ({ onStartQuiz, onViewReport }) => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', flexWrap: 'wrap' }}>
                 {isCompleted && (
                     <button
                         onClick={() => onStartQuiz(quiz.id)}
