@@ -40,3 +40,5 @@ coverage/
 # Temporary files
 *.tmp
 .cache/
+server/node_modules/
+client/node_modules/
