@@ -4,7 +4,7 @@ import API_URL from '../config';
 import { useAuth } from '../context/AuthContext';
 
 const QuizGame = ({ quizId, onEndGame, onShowReport }) => {
-    const { user } = useAuth();
+    const { user, fetchWithAuth } = useAuth();
     const [socket, setSocket] = useState(null);
     const [quiz, setQuiz] = useState(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -31,7 +31,7 @@ const QuizGame = ({ quizId, onEndGame, onShowReport }) => {
 
     useEffect(() => {
         // Fetch quiz details first
-        fetch(`${API_URL}/api/quizzes/${quizId}`)
+        fetchWithAuth(`${API_URL}/api/quizzes/${quizId}`)
             .then(res => res.json())
             .then(data => setQuiz(data));
     }, [quizId]);

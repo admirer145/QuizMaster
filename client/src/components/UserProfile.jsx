@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 
 const UserProfile = ({ onBack }) => {
-    const { user, token, logout } = useAuth();
+    const { user, token, logout, fetchWithAuth } = useAuth();
     const { showError } = useToast();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
@@ -24,9 +24,8 @@ const UserProfile = ({ onBack }) => {
 
     const confirmDelete = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/profile`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+            const res = await fetchWithAuth(`${API_URL}/api/profile`, {
+                method: 'DELETE'
             });
 
             if (res.ok) {
@@ -57,21 +56,11 @@ const UserProfile = ({ onBack }) => {
             console.log('API_URL:', API_URL);
 
             const responses = await Promise.all([
-                fetch(`${API_URL}/api/profile/stats/${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${API_URL}/api/profile/activity/${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${API_URL}/api/profile/trends/${user.id}?days=30`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${API_URL}/api/profile/achievements/${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }),
-                fetch(`${API_URL}/api/profile/recommendations/${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
+                fetchWithAuth(`${API_URL}/api/profile/stats/${user.id}`),
+                fetchWithAuth(`${API_URL}/api/profile/activity/${user.id}`),
+                fetchWithAuth(`${API_URL}/api/profile/trends/${user.id}?days=30`),
+                fetchWithAuth(`${API_URL}/api/profile/achievements/${user.id}`),
+                fetchWithAuth(`${API_URL}/api/profile/recommendations/${user.id}`)
             ]);
 
             console.log('All responses received:', responses.map(r => ({ url: r.url, status: r.status, ok: r.ok })));

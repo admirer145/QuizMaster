@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
 const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [step, setStep] = useState(1); // 1: Details, 2: Questions
     const [quizData, setQuizData] = useState({
@@ -33,11 +33,7 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
 
     const fetchQuizData = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${editQuizId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${editQuizId}`);
             if (!response.ok) throw new Error('Failed to fetch quiz');
             const data = await response.json();
 
@@ -60,12 +56,8 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch(`${API_URL}/api/quizzes`, {
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(quizData)
             });
             if (!response.ok) {
@@ -91,12 +83,8 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                 options: currentQuestion.type === 'multiple_choice' ? currentQuestion.options : null
             };
 
-            const response = await fetch(`${API_URL}/api/quizzes/${createdQuizId}/questions`, {
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${createdQuizId}/questions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(questionPayload)
             });
 
@@ -127,12 +115,8 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
 
     const handleUpdateQuestion = async (questionId, questionData) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/questions/${questionId}`, {
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/questions/${questionId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(questionData)
             });
 
@@ -159,11 +143,8 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/questions/${questionId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/questions/${questionId}`, {
+                method: 'DELETE'
             });
 
             if (!response.ok) {

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import { formatDate } from '../utils/dateUtils';
 
 const QuestionAnalysis = ({ question, userId, onClose }) => {
+    const { fetchWithAuth } = useAuth();
     const [analysis, setAnalysis] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,7 @@ const QuestionAnalysis = ({ question, userId, onClose }) => {
 
     const fetchAnalysis = async () => {
         try {
-            const response = await fetch(
+            const response = await fetchWithAuth(
                 `${API_URL}/api/quizzes/questions/${question.id}/analysis?userId=${userId}`
             );
             const data = await response.json();

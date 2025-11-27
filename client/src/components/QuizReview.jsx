@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
 const QuizReview = ({ onBack }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,11 +19,7 @@ const QuizReview = ({ onBack }) => {
     const fetchPendingQuizzes = async () => {
         try {
             // Fetch all quizzes and filter for pending_review status
-            const response = await fetch(`${API_URL}/api/quizzes`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes`);
             if (!response.ok) throw new Error('Failed to fetch quizzes');
             const data = await response.json();
             const pending = data.filter(q => q.status === 'pending_review');
@@ -38,11 +34,7 @@ const QuizReview = ({ onBack }) => {
     const startReview = async (quizId) => {
         try {
             setSelectedQuiz(quizId);
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}`);
             if (!response.ok) throw new Error('Failed to fetch quiz details');
             const data = await response.json();
             setCurrentQuizDetails(data);
@@ -54,12 +46,8 @@ const QuizReview = ({ onBack }) => {
 
     const handleReview = async (quizId, status) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/review`, {
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/review`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ status, comments: reviewComment })
             });
             if (!response.ok) throw new Error('Failed to review quiz');

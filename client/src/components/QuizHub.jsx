@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
 const QuizHub = ({ onBack }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [quizzes, setQuizzes] = useState([]);
     const [filteredQuizzes, setFilteredQuizzes] = useState([]);
@@ -33,7 +33,7 @@ const QuizHub = ({ onBack }) => {
 
     const fetchPublicQuizzes = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/public`);
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/public`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `Failed to fetch quizzes (${response.status})`);
@@ -50,11 +50,7 @@ const QuizHub = ({ onBack }) => {
 
     const fetchUserLibrary = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/my-library`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-library`);
             if (response.ok) {
                 const data = await response.json();
                 const allLibraryQuizzes = [...data.recentlyAdded, ...data.completed];
@@ -68,11 +64,8 @@ const QuizHub = ({ onBack }) => {
 
     const handleAddToLibrary = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/add-to-library`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/add-to-library`, {
+                method: 'POST'
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -87,11 +80,7 @@ const QuizHub = ({ onBack }) => {
 
     const handleViewDetails = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}`);
             if (!response.ok) throw new Error('Failed to fetch quiz details');
             const data = await response.json();
             setSelectedQuiz(data);

@@ -4,7 +4,7 @@ import API_URL from '../config';
 import { formatDate } from '../utils/dateUtils';
 
 const Leaderboard = ({ onBack }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const [scores, setScores] = React.useState([]);
     const [filter, setFilter] = React.useState('first'); // 'first' or 'all'
     const [myQuizzesOnly, setMyQuizzesOnly] = React.useState(false);
@@ -38,11 +38,7 @@ const Leaderboard = ({ onBack }) => {
             myQuizzesOnly
         });
 
-        fetch(`${API_URL}/api/leaderboard?${queryParams}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
+        fetchWithAuth(`${API_URL}/api/leaderboard?${queryParams}`)
             .then(res => res.json())
             .then(data => {
                 if (data.meta) {
@@ -54,7 +50,7 @@ const Leaderboard = ({ onBack }) => {
                 }
             })
             .catch(err => console.error(err));
-    }, [filter, page, debouncedSearch, myQuizzesOnly, token]);
+    }, [filter, page, debouncedSearch, myQuizzesOnly, fetchWithAuth]);
 
     const handleSearchChange = (field, value) => {
         setSearch(prev => ({ ...prev, [field]: value }));

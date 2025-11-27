@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
 const Home = ({ onStartQuiz, onViewReport }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [library, setLibrary] = useState({ recentlyAdded: [], completed: [] });
     const [loading, setLoading] = useState(true);
@@ -15,11 +15,7 @@ const Home = ({ onStartQuiz, onViewReport }) => {
 
     const fetchLibrary = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/my-library`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-library`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || 'Failed to fetch library');
@@ -40,11 +36,8 @@ const Home = ({ onStartQuiz, onViewReport }) => {
 
     const handleRemoveFromLibrary = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/remove-from-library`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/remove-from-library`, {
+                method: 'DELETE'
             });
 
             const data = await response.json().catch(() => ({}));

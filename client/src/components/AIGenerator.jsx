@@ -4,7 +4,7 @@ import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
 
 const AIGenerator = ({ onBack, onCreated }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [topic, setTopic] = useState('');
     const [difficulty, setDifficulty] = useState('Beginner');
@@ -14,12 +14,8 @@ const AIGenerator = ({ onBack, onCreated }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/generate`, {
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/generate`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ topic, difficulty })
             });
 

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import { formatDate } from '../utils/dateUtils';
 
 const QuizAttempts = ({ quizId, userId, onViewReport, onBack }) => {
+    const { fetchWithAuth } = useAuth();
     const [attempts, setAttempts] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,7 @@ const QuizAttempts = ({ quizId, userId, onViewReport, onBack }) => {
 
     const fetchAttempts = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/attempts/${userId}`);
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/attempts/${userId}`);
             const data = await response.json();
             setAttempts(data);
         } catch (err) {

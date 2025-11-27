@@ -1,16 +1,15 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
+    const { showError } = useToast();
 
     useEffect(() => {
         if (token) {
-            // In a real app, we'd validate the token with the backend here
-            // For now, we'll just assume it's valid if present, or decode it if needed
-            // But since we store user object on login, we might need to persist that too or fetch it
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 setUser(JSON.parse(storedUser));
@@ -18,22 +17,51 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
-    const login = (userData, authToken) => {
+    const login = useCallback((userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem('token', authToken);
         localStorage.setItem('user', JSON.stringify(userData));
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setUser(null);
         setToken(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-    };
+    }, []);
+
+    const fetchWithAuth = useCallback(async (url, options = {}) => {
+        const headers = {
+            ...options.headers,
+        };
+
+        // Set default Content-Type to application/json only if not FormData and not explicitly set
+        if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        try {
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401 || response.status === 403) {
+                showError('Session expired. Please login again.');
+                logout();
+                return response;
+            }
+
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }, [token, logout, showError]);
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout }}>
+        <AuthContext.Provider value={{ user, token, login, logout, fetchWithAuth }}>
             {children}
         </AuthContext.Provider>
     );

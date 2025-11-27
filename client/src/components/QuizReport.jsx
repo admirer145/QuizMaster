@@ -4,7 +4,7 @@ import QuestionAnalysis from './QuestionAnalysis';
 import { useAuth } from '../context/AuthContext';
 
 const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
-    const { user } = useAuth();
+    const { user, fetchWithAuth } = useAuth();
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -16,7 +16,7 @@ const QuizReport = ({ resultId, onBackToMenu, onBackToAttempts }) => {
 
     const fetchReport = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/results/${resultId}/report`);
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/results/${resultId}/report`);
             const data = await response.json();
             setReport(data);
         } catch (err) {

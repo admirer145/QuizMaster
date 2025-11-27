@@ -6,7 +6,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DocumentQuizGenerator from './DocumentQuizGenerator';
 
 const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
-    const { token } = useAuth();
+    const { fetchWithAuth } = useAuth();
     const { showSuccess, showError, showInfo } = useToast();
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,11 +22,7 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const fetchQuizzes = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/my-quizzes`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-quizzes`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `Failed to fetch quizzes (${response.status})`);
@@ -50,11 +46,7 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const fetchReviewDetails = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/review-details`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/review-details`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.comments) {
@@ -68,11 +60,8 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const handlePublish = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/publish`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/publish`, {
+                method: 'POST'
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -87,11 +76,7 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const handleViewDetails = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}`);
             if (!response.ok) throw new Error('Failed to fetch quiz details');
             const data = await response.json();
             setSelectedQuiz(data);
@@ -102,11 +87,8 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const handleDelete = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/delete/${quizId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/delete/${quizId}`, {
+                method: 'DELETE'
             });
 
             const data = await response.json().catch(() => ({}));
@@ -253,11 +235,8 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
 
     const handleAddToHome = async (quizId) => {
         try {
-            const response = await fetch(`${API_URL}/api/quizzes/${quizId}/add-to-library`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await fetchWithAuth(`${API_URL}/api/quizzes/${quizId}/add-to-library`, {
+                method: 'POST'
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
