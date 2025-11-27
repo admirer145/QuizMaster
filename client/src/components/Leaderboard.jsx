@@ -72,7 +72,7 @@ const Leaderboard = ({ onBack }) => {
                 flexWrap: 'wrap',
                 gap: '1rem'
             }}>
-                <h2 style={{ margin: 0 }}>Leaderboard</h2>
+                <h2 style={{ margin: 0 }}>Master Leaderboard</h2>
 
                 <div style={{
                     display: 'flex',
