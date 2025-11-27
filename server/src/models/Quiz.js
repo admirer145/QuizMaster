@@ -1,4 +1,4 @@
-const db = require('../db');
+const QuizRepository = require('../repositories/QuizRepository');
 const { MultipleChoiceQuestion, TrueFalseQuestion } = require('./Question');
 
 class Quiz {
@@ -16,135 +16,56 @@ class Quiz {
     }
 
     static async create(title, category, difficulty, creator_id = null, source = 'manual') {
-        return new Promise((resolve, reject) => {
-            db.run(
-                'INSERT INTO quizzes (title, category, difficulty, creator_id, source) VALUES (?, ?, ?, ?, ?)',
-                [title, category, difficulty, creator_id, source],
-                function (err) {
-                    if (err) return reject(err);
-                    resolve(new Quiz(this.lastID, title, category, difficulty, [], creator_id, false, 'draft', null, source));
-                }
-            );
-        });
+        const quiz = await QuizRepository.create({ title, category, difficulty, creator_id, source });
+        return new Quiz(quiz.id, title, category, difficulty, [], creator_id, false, 'draft', quiz.created_at, source);
     }
 
     static async addQuestion(quizId, questionData) {
-        const { type, text, options, correctAnswer } = questionData;
-        const optionsStr = options ? JSON.stringify(options) : null;
-
-        return new Promise((resolve, reject) => {
-            db.run(
-                'INSERT INTO questions (quiz_id, type, question_text, options, correct_answer) VALUES (?, ?, ?, ?, ?)',
-                [quizId, type, text, optionsStr, correctAnswer],
-                function (err) {
-                    if (err) return reject(err);
-                    resolve(this.lastID);
-                }
-            );
-        });
+        const question = await QuizRepository.addQuestion(quizId, questionData);
+        return question.id;
     }
 
     static async updateStatus(id, status, is_public) {
-        return new Promise((resolve, reject) => {
-            db.run(
-                'UPDATE quizzes SET status = ?, is_public = ? WHERE id = ?',
-                [status, is_public, id],
-                function (err) {
-                    if (err) return reject(err);
-                    resolve(this.changes);
-                }
-            );
-        });
+        return await QuizRepository.updateStatus(id, status, is_public);
     }
 
     static async getById(id) {
-        // Fetch quiz details
-        const quizPromise = new Promise((resolve, reject) => {
-            db.get('SELECT * FROM quizzes WHERE id = ?', [id], (err, row) => {
-                if (err) return reject(err);
-                resolve(row);
-            });
-        });
+        const quiz = await QuizRepository.findById(id, true);
 
-        // Fetch questions
-        const questionsPromise = new Promise((resolve, reject) => {
-            db.all('SELECT * FROM questions WHERE quiz_id = ?', [id], (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows);
-            });
-        });
+        if (!quiz) return null;
 
-        const [quizData, questionsData] = await Promise.all([quizPromise, questionsPromise]);
-
-        if (!quizData) return null;
-
-        const questions = questionsData.map(q => {
+        const questions = quiz.questions.map(q => {
             if (q.type === 'multiple_choice') {
-                return new MultipleChoiceQuestion(q.id, q.question_text, JSON.parse(q.options), q.correct_answer);
+                return new MultipleChoiceQuestion(q.id, q.question_text, q.options, q.correct_answer);
             } else {
                 return new TrueFalseQuestion(q.id, q.question_text, q.correct_answer);
             }
         });
 
         return new Quiz(
-            quizData.id,
-            quizData.title,
-            quizData.category,
-            quizData.difficulty,
+            quiz.id,
+            quiz.title,
+            quiz.category,
+            quiz.difficulty,
             questions,
-            quizData.creator_id,
-            quizData.is_public,
-            quizData.status,
-            quizData.created_at,
-            quizData.source
+            quiz.creator_id,
+            quiz.is_public,
+            quiz.status,
+            quiz.created_at,
+            quiz.source
         );
     }
 
     static async getAll() {
-        return new Promise((resolve, reject) => {
-            const query = `
-                SELECT q.*, COUNT(qu.id) as questionCount 
-                FROM quizzes q 
-                LEFT JOIN questions qu ON q.id = qu.quiz_id 
-                GROUP BY q.id
-            `;
-            db.all(query, [], (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows);
-            });
-        });
+        return await QuizRepository.findAll();
     }
 
     static async getPublicQuizzes() {
-        return new Promise((resolve, reject) => {
-            const query = `
-                SELECT q.*, COUNT(qu.id) as questionCount 
-                FROM quizzes q 
-                LEFT JOIN questions qu ON q.id = qu.quiz_id 
-                WHERE q.is_public = 1
-                GROUP BY q.id
-            `;
-            db.all(query, [], (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows);
-            });
-        });
+        return await QuizRepository.findPublic();
     }
 
     static async getUserQuizzes(userId) {
-        return new Promise((resolve, reject) => {
-            const query = `
-                SELECT q.*, COUNT(qu.id) as questionCount 
-                FROM quizzes q 
-                LEFT JOIN questions qu ON q.id = qu.quiz_id 
-                WHERE q.creator_id = ?
-                GROUP BY q.id
-            `;
-            db.all(query, [userId], (err, rows) => {
-                if (err) return reject(err);
-                resolve(rows);
-            });
-        });
+        return await QuizRepository.findByCreator(userId);
     }
 }
 

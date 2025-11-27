@@ -3,6 +3,10 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+
+// Initialize Sequelize models
+const { sequelize } = require('./models/sequelize');
+
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
 const gameManager = require('./managers/GameManager');
@@ -77,73 +81,61 @@ io.on('connection', (socket) => {
         const session = gameManager.getSession(socket.id);
         if (!session) return;
 
-        const db = require('./db');
+        const { Question, Result, QuestionAttempt } = require('./models/sequelize');
         const analyticsService = require('./services/analyticsService');
         const achievementService = require('./services/achievementService');
 
-        // Get total questions in quiz to calculate actual percentage
-        db.get('SELECT COUNT(*) as total FROM questions WHERE quiz_id = ?', [quizId], (err, quizData) => {
-            if (err) {
-                console.error('Error getting quiz data:', err);
-                socket.emit('result_saved', { success: false });
-                return;
-            }
-
-            const totalQuestions = quizData.total;
-            const maxScore = totalQuestions * 10; // Each question worth 10 points
-
-            // Calculate actual percentage based on total questions
+        try {
+            // Get total questions in quiz
+            const totalQuestions = await Question.count({ where: { quiz_id: quizId } });
+            const maxScore = totalQuestions * 10;
             const actualPercentage = totalQuestions > 0 ? Math.round((score / maxScore) * 100) : 0;
 
             console.log(`Quiz ${quizId}: Score ${score}/${maxScore} (${actualPercentage}%) - Total Questions: ${totalQuestions}`);
 
-            db.run(
-                'INSERT INTO results (user_id, quiz_id, score) VALUES (?, ?, ?)',
-                [session.userId, quizId, score],
-                async function (err) {
-                    if (err) {
-                        console.error('Error saving result:', err);
-                        socket.emit('result_saved', { success: false });
-                    } else {
-                        const resultId = this.lastID;
-                        console.log(`Saved score ${score} for user ${session.userId} on quiz ${quizId}`);
+            // Save result
+            const result = await Result.create({
+                user_id: session.userId,
+                quiz_id: quizId,
+                score,
+            });
 
-                        // Update all question attempts with the result_id
-                        db.run(
-                            'UPDATE question_attempts SET result_id = ? WHERE user_id = ? AND quiz_id = ? AND result_id IS NULL',
-                            [resultId, session.userId, quizId],
-                            (updateErr) => {
-                                if (updateErr) console.error('Error updating attempts:', updateErr);
-                            }
-                        );
+            const resultId = result.id;
+            console.log(`Saved score ${score} for user ${session.userId} on quiz ${quizId}`);
 
-                        // Update user stats with actual percentage
-                        try {
-                            await analyticsService.updateStreak(session.userId);
-                            await analyticsService.updateUserStats(session.userId, actualPercentage, timeTaken || 0);
-
-                            // Check for new achievements
-                            const newAchievements = await achievementService.checkAndAwardAchievements(session.userId);
-
-                            socket.emit('result_saved', {
-                                success: true,
-                                resultId,
-                                newAchievements: newAchievements.map(a => ({
-                                    id: a.id,
-                                    name: a.name,
-                                    description: a.description,
-                                    icon: a.icon
-                                }))
-                            });
-                        } catch (statsErr) {
-                            console.error('Error updating stats/achievements:', statsErr);
-                            // Still send success since result was saved
-                            socket.emit('result_saved', { success: true, resultId });
-                        }
+            // Update all question attempts with the result_id
+            await QuestionAttempt.update(
+                { result_id: resultId },
+                {
+                    where: {
+                        user_id: session.userId,
+                        quiz_id: quizId,
+                        result_id: null,
                     }
                 }
             );
-        });
+
+            // Update user stats
+            await analyticsService.updateStreak(session.userId);
+            await analyticsService.updateUserStats(session.userId, actualPercentage, timeTaken || 0);
+
+            // Check for new achievements
+            const newAchievements = await achievementService.checkAndAwardAchievements(session.userId);
+
+            socket.emit('result_saved', {
+                success: true,
+                resultId,
+                newAchievements: newAchievements.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    description: a.description,
+                    icon: a.icon
+                }))
+            });
+        } catch (err) {
+            console.error('Error saving result:', err);
+            socket.emit('result_saved', { success: false });
+        }
     });
 
     socket.on('disconnect', () => {

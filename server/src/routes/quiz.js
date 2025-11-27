@@ -49,24 +49,16 @@ router.get('/my-quizzes', authenticateToken, async (req, res) => {
 // Add quiz to user's library
 router.post('/:id/add-to-library', authenticateToken, async (req, res) => {
     try {
-        const db = require('../db');
+        const LibraryRepository = require('../repositories/LibraryRepository');
         const quizId = req.params.id;
         const userId = req.user.id;
 
-        db.run(
-            'INSERT INTO user_quiz_library (user_id, quiz_id) VALUES (?, ?)',
-            [userId, quizId],
-            function (err) {
-                if (err) {
-                    if (err.message.includes('UNIQUE')) {
-                        return res.status(400).json({ error: 'Quiz already in library' });
-                    }
-                    return res.status(500).json({ error: err.message });
-                }
-                res.json({ message: 'Quiz added to library', id: this.lastID });
-            }
-        );
+        const entry = await LibraryRepository.addToLibrary(userId, quizId);
+        res.json({ message: 'Quiz added to library', id: entry.id });
     } catch (err) {
+        if (err.message === 'Quiz already in library') {
+            return res.status(400).json({ error: err.message });
+        }
         res.status(500).json({ error: err.message });
     }
 });
@@ -74,22 +66,15 @@ router.post('/:id/add-to-library', authenticateToken, async (req, res) => {
 // Remove quiz from user's library
 router.delete('/:id/remove-from-library', authenticateToken, async (req, res) => {
     try {
-        const db = require('../db');
+        const LibraryRepository = require('../repositories/LibraryRepository');
         const quizId = req.params.id;
         const userId = req.user.id;
 
-        db.run(
-            'DELETE FROM user_quiz_library WHERE user_id = ? AND quiz_id = ?',
-            [userId, quizId],
-            function (err) {
-                if (err) return res.status(500).json({ error: err.message });
-                // Make this idempotent - success even if quiz wasn't in library
-                res.json({
-                    message: 'Quiz removed from library',
-                    wasInLibrary: this.changes > 0
-                });
-            }
-        );
+        const wasInLibrary = await LibraryRepository.removeFromLibrary(userId, quizId);
+        res.json({
+            message: 'Quiz removed from library',
+            wasInLibrary
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -99,53 +84,39 @@ router.delete('/:id/remove-from-library', authenticateToken, async (req, res) =>
 // Delete quiz (only draft or rejected) - MUST come after more specific routes like /remove-from-library
 router.delete('/delete/:id', authenticateToken, async (req, res) => {
     try {
-        const db = require('../db');
+        const QuizRepository = require('../repositories/QuizRepository');
         const quizId = req.params.id;
         const userId = req.user.id;
 
         console.log('DELETE /delete/:id called for quiz:', quizId, 'by user:', userId);
 
         // Check if quiz exists
-        db.get(
-            'SELECT * FROM quizzes WHERE id = ?',
-            [quizId],
-            (err, quiz) => {
-                if (err) {
-                    console.error('Delete quiz error:', err);
-                    return res.status(500).json({ error: err.message });
-                }
-                if (!quiz) {
-                    console.log('Quiz not found:', quizId);
-                    return res.status(404).json({ error: 'Quiz not found' });
-                }
+        const quiz = await Quiz.getById(quizId);
+        if (!quiz) {
+            console.log('Quiz not found:', quizId);
+            return res.status(404).json({ error: 'Quiz not found' });
+        }
 
-                console.log('Quiz found:', { id: quiz.id, creator_id: quiz.creator_id, status: quiz.status });
+        console.log('Quiz found:', { id: quiz.id, creator_id: quiz.creator_id, status: quiz.status });
 
-                // Check if user owns the quiz (if creator_id exists)
-                if (quiz.creator_id && quiz.creator_id !== userId) {
-                    console.log('Authorization failed: user', userId, 'does not own quiz created by', quiz.creator_id);
-                    return res.status(403).json({ error: 'Not authorized to delete this quiz' });
-                }
+        // Check if user owns the quiz (if creator_id exists)
+        if (quiz.creator_id && quiz.creator_id !== userId) {
+            console.log('Authorization failed: user', userId, 'does not own quiz created by', quiz.creator_id);
+            return res.status(403).json({ error: 'Not authorized to delete this quiz' });
+        }
 
-                // Only allow deletion of draft or rejected quizzes
-                if (quiz.status !== 'draft' && quiz.status !== 'rejected') {
-                    console.log('Status check failed: quiz status is', quiz.status);
-                    return res.status(403).json({
-                        error: `Cannot delete ${quiz.status} quizzes. Only draft or rejected quizzes can be deleted.`
-                    });
-                }
+        // Only allow deletion of draft or rejected quizzes
+        if (quiz.status !== 'draft' && quiz.status !== 'rejected') {
+            console.log('Status check failed: quiz status is', quiz.status);
+            return res.status(403).json({
+                error: `Cannot delete ${quiz.status} quizzes. Only draft or rejected quizzes can be deleted.`
+            });
+        }
 
-                // Delete quiz (cascade will handle questions)
-                db.run('DELETE FROM quizzes WHERE id = ?', [quizId], function (deleteErr) {
-                    if (deleteErr) {
-                        console.error('Delete execution error:', deleteErr);
-                        return res.status(500).json({ error: deleteErr.message });
-                    }
-                    console.log('Quiz deleted successfully:', quizId);
-                    res.json({ message: 'Quiz deleted successfully' });
-                });
-            }
-        );
+        // Delete quiz
+        await QuizRepository.deleteQuiz(quizId);
+        console.log('Quiz deleted successfully:', quizId);
+        res.json({ message: 'Quiz deleted successfully' });
     } catch (err) {
         console.error('Delete quiz catch error:', err);
         res.status(500).json({ error: err.message });
@@ -155,54 +126,18 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
 // Get user's quiz library (recently added + completed)
 router.get('/my-library', authenticateToken, async (req, res) => {
     try {
-        const db = require('../db');
+        const LibraryRepository = require('../repositories/LibraryRepository');
         const userId = req.user.id;
 
-        db.all(
-            `SELECT DISTINCT
-                q.id,
-                q.title,
-                q.category,
-                q.difficulty,
-                q.creator_id,
-                q.is_public,
-                q.status,
-                q.created_at,
-                q.source,
-                MAX(uql.added_at) as added_at,
-                (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) as questionCount,
-                (SELECT COUNT(*) FROM results WHERE quiz_id = q.id AND user_id = ?) as attemptCount,
-                (SELECT MAX(completed_at) FROM results WHERE quiz_id = q.id AND user_id = ?) as lastAttemptDate,
-                (SELECT id FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as result_id,
-                (SELECT score FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as score,
-                (SELECT completed_at FROM results WHERE quiz_id = q.id AND user_id = ? ORDER BY score DESC LIMIT 1) as completed_at
-            FROM user_quiz_library uql
-            JOIN quizzes q ON uql.quiz_id = q.id
-            WHERE uql.user_id = ?
-            GROUP BY q.id
-            ORDER BY MAX(uql.added_at) DESC`,
-            [userId, userId, userId, userId, userId, userId],
-            (err, rows) => {
-                if (err) return res.status(500).json({ error: err.message });
+        const library = await LibraryRepository.getUserLibrary(userId);
 
-                // Separate into recently added (not completed) and completed
-                const recentlyAdded = rows.filter(r => !r.result_id);
+        console.log('=== MY-LIBRARY DEBUG ===');
+        console.log('Recently added:', library.recentlyAdded.length);
+        console.log('Completed:', library.completed.length);
+        console.log('Completed quiz IDs:', library.completed.map(q => q.id));
+        console.log('========================');
 
-                // For completed quizzes, sort by most recent attempt
-                const completed = rows
-                    .filter(r => r.result_id)
-                    .sort((a, b) => new Date(b.lastAttemptDate) - new Date(a.lastAttemptDate));
-
-                console.log('=== MY-LIBRARY DEBUG ===');
-                console.log('Total rows:', rows.length);
-                console.log('Recently added:', recentlyAdded.length);
-                console.log('Completed:', completed.length);
-                console.log('Completed quiz IDs:', completed.map(q => q.id));
-                console.log('========================');
-
-                res.json({ recentlyAdded, completed });
-            }
-        );
+        res.json(library);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -276,14 +211,17 @@ router.post('/:id/review', authenticateToken, async (req, res) => {
         await Quiz.updateStatus(quizId, status, isPublic);
 
         // Log review in quiz_reviews table
-        const db = require('../db');
-        db.run(
-            'INSERT INTO quiz_reviews (quiz_id, reviewer_id, status, comments) VALUES (?, ?, ?, ?)',
-            [quizId, req.user.id, status, comments || null],
-            (err) => {
-                if (err) console.error('Error saving review:', err);
-            }
-        );
+        const { QuizReview } = require('../models/sequelize');
+        try {
+            await QuizReview.create({
+                quiz_id: quizId,
+                reviewer_id: req.user.id,
+                status,
+                comments: comments || null,
+            });
+        } catch (err) {
+            console.error('Error saving review:', err);
+        }
 
         res.json({ message: `Quiz ${status}` });
     } catch (err) {
@@ -295,16 +233,14 @@ router.post('/:id/review', authenticateToken, async (req, res) => {
 router.get('/:id/review-details', authenticateToken, async (req, res) => {
     try {
         const quizId = req.params.id;
-        const db = require('../db');
+        const { QuizReview } = require('../models/sequelize');
 
-        db.get(
-            'SELECT * FROM quiz_reviews WHERE quiz_id = ? ORDER BY reviewed_at DESC LIMIT 1',
-            [quizId],
-            (err, row) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.json(row || {});
-            }
-        );
+        const review = await QuizReview.findOne({
+            where: { quiz_id: quizId },
+            order: [['reviewed_at', 'DESC']],
+        });
+
+        res.json(review || {});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -451,20 +387,10 @@ router.put('/:id/update-questions', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'You can only update your own quizzes' });
         }
 
-        const db = require('../db');
+        const QuizRepository = require('../repositories/QuizRepository');
 
-        // Delete existing questions
-        await new Promise((resolve, reject) => {
-            db.run('DELETE FROM questions WHERE quiz_id = ?', [quizId], (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
-
-        // Add new questions
-        for (const question of questions) {
-            await Quiz.addQuestion(quizId, question);
-        }
+        // Update all questions
+        await QuizRepository.updateQuestions(quizId, questions);
 
         // Fetch updated quiz
         const updatedQuiz = await Quiz.getById(quizId);
