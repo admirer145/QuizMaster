@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
+import DataManagement from './DataManagement';
 import {
     LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -17,6 +18,7 @@ const UserProfile = ({ onBack }) => {
     const [achievements, setAchievements] = useState({ unlocked: [], locked: [], totalAchievements: 0, unlockedCount: 0 });
     const [recommendations, setRecommendations] = useState([]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [activeTab, setActiveTab] = useState('overview'); // overview, data-privacy
 
     const handleDeleteClick = () => {
         setShowDeleteConfirm(true);
@@ -258,285 +260,339 @@ const UserProfile = ({ onBack }) => {
                 </div>
             </div>
 
-            {/* Performance Overview */}
-            <div className="glass-card">
-                <h3 style={{ marginBottom: '1.5rem' }}>📊 Performance Overview</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    <div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Best Score</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#22c55e' }}>{userStats.bestScore}%</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Perfect Scores</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7' }}>⭐ {userStats.perfectScores}</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Longest Streak</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>🔥 {userStats.longestStreak}</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Improvement Rate</div>
-                        <div style={{
-                            fontSize: '1.5rem',
-                            fontWeight: 'bold',
-                            color: improvementRate.improvementRate >= 0 ? '#22c55e' : '#ef4444'
-                        }}>
-                            {improvementRate.improvementRate >= 0 ? '↑' : '↓'} {Math.abs(improvementRate.improvementRate).toFixed(1)}%
-                        </div>
-                    </div>
+            {/* Tabs */}
+            <div className="glass-card" style={{ padding: '0' }}>
+                <div style={{
+                    display: 'flex',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    overflow: 'auto'
+                }}>
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        style={{
+                            flex: 1,
+                            padding: '1rem',
+                            border: 'none',
+                            background: activeTab === 'overview' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                            color: activeTab === 'overview' ? '#818cf8' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            borderBottom: activeTab === 'overview' ? '2px solid #818cf8' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        📊 Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('data-privacy')}
+                        style={{
+                            flex: 1,
+                            padding: '1rem',
+                            border: 'none',
+                            background: activeTab === 'data-privacy' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                            color: activeTab === 'data-privacy' ? '#818cf8' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            borderBottom: activeTab === 'data-privacy' ? '2px solid #818cf8' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        🔒 Data & Privacy
+                    </button>
                 </div>
             </div>
 
-            {/* Performance Trend Chart */}
-            {trends.length > 0 && (
-                <div className="glass-card">
-                    <h3 style={{ marginBottom: '1.5rem' }}>📈 Performance Trend (Last 30 Days)</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={trends}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                            <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" />
-                            <YAxis stroke="rgba(255,255,255,0.5)" />
-                            <Tooltip
-                                contentStyle={{
-                                    background: 'rgba(0,0,0,0.8)',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                    borderRadius: '8px'
-                                }}
-                            />
-                            <Legend />
-                            <Line type="monotone" dataKey="avgScore" stroke="#3b82f6" strokeWidth={2} name="Avg Score" />
-                            <Line type="monotone" dataKey="bestScore" stroke="#22c55e" strokeWidth={2} name="Best Score" />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            )}
-
-            {/* Category Mastery */}
-            {categoryStats && categoryStats.length > 0 && (
-                <div className="glass-card">
-                    <h3 style={{ marginBottom: '1.5rem' }}>🎯 Category Mastery</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {categoryStats.map((cat, idx) => (
-                            <div key={idx} style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                padding: '1rem',
-                                borderRadius: '12px',
-                                border: '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                    <div style={{ fontWeight: '600' }}>
-                                        {cat.category}
-                                        {cat.isMastered && <span style={{ marginLeft: '0.5rem' }}>🏆</span>}
-                                        {cat.needsImprovement && <span style={{ marginLeft: '0.5rem' }}>⚠️</span>}
-                                    </div>
-                                    <div style={{ fontSize: '0.9rem', color: getScoreColor(cat.avgScore) }}>
-                                        {Math.round(cat.avgScore)}% avg
-                                    </div>
-                                </div>
-                                <div style={{
-                                    height: '8px',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    borderRadius: '4px',
-                                    overflow: 'hidden'
-                                }}>
-                                    <div style={{
-                                        height: '100%',
-                                        width: `${cat.masteryLevel}%`,
-                                        background: getMasteryColor(cat.masteryLevel),
-                                        transition: 'width 0.3s ease'
-                                    }} />
-                                </div>
-                                <div style={{
-                                    display: 'flex',
-                                    gap: '1rem',
-                                    marginTop: '0.5rem',
-                                    fontSize: '0.85rem',
-                                    color: 'var(--text-muted)'
-                                }}>
-                                    <span>{cat.quizzesCompleted} quizzes</span>
-                                    <span>•</span>
-                                    <span>{cat.totalAttempts} attempts</span>
-                                    <span>•</span>
-                                    <span>Best: {cat.bestScore}%</span>
-                                </div>
+            {/* Tab Content */}
+            {activeTab === 'overview' && (
+                <>
+                    {/* Performance Overview */}
+                    <div className="glass-card">
+                        <h3 style={{ marginBottom: '1.5rem' }}>📊 Performance Overview</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Best Score</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#22c55e' }}>{userStats.bestScore}%</div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Achievements */}
-            <div className="glass-card">
-                <h3 style={{ marginBottom: '1.5rem' }}>
-                    🏆 Achievements ({achievements.unlockedCount}/{achievements.totalAchievements})
-                </h3>
-
-                {/* Unlocked Achievements */}
-                {achievements.unlocked.length > 0 && (
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#22c55e' }}>✓ Unlocked</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                            {achievements.unlocked.map((achievement, idx) => (
-                                <div key={idx} style={{
-                                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1))',
-                                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                                    padding: '1rem',
-                                    borderRadius: '12px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{achievement.icon}</div>
-                                    <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{achievement.name}</div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{achievement.description}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '0.5rem' }}>
-                                        {new Date(achievement.unlockedAt).toLocaleDateString()}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Locked Achievements */}
-                {achievements.locked.length > 0 && (
-                    <div>
-                        <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>🔒 Locked</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                            {achievements.locked.slice(0, 6).map((achievement, idx) => (
-                                <div key={idx} style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid var(--glass-border)',
-                                    padding: '1rem',
-                                    borderRadius: '12px',
-                                    textAlign: 'center',
-                                    opacity: 0.6
-                                }}>
-                                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem', filter: 'grayscale(100%)' }}>
-                                        {achievement.icon}
-                                    </div>
-                                    <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{achievement.name}</div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                                        {achievement.description}
-                                    </div>
-                                    <div style={{
-                                        height: '4px',
-                                        background: 'rgba(255,255,255,0.1)',
-                                        borderRadius: '2px',
-                                        overflow: 'hidden',
-                                        marginTop: '0.5rem'
-                                    }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${achievement.progress}%`,
-                                            background: 'linear-gradient(90deg, var(--primary), var(--secondary))',
-                                            transition: 'width 0.3s ease'
-                                        }} />
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                        {Math.round(achievement.progress)}% complete
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Recommendations */}
-            {recommendations.length > 0 && (
-                <div className="glass-card">
-                    <h3 style={{ marginBottom: '1.5rem' }}>💡 Personalized Recommendations</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {recommendations.map((rec, idx) => (
-                            <div key={idx} style={{
-                                background: 'rgba(99, 102, 241, 0.1)',
-                                border: '1px solid rgba(99, 102, 241, 0.3)',
-                                padding: '1rem',
-                                borderRadius: '12px'
-                            }}>
-                                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>{rec.title}</div>
-                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{rec.message}</div>
-                                {rec.categories && rec.categories.length > 0 && (
-                                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {rec.categories.map((cat, i) => (
-                                            <span key={i} style={{
-                                                background: 'rgba(99, 102, 241, 0.2)',
-                                                padding: '0.25rem 0.75rem',
-                                                borderRadius: '12px',
-                                                fontSize: '0.85rem'
-                                            }}>
-                                                {cat}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                            <div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Perfect Scores</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7' }}>⭐ {userStats.perfectScores}</div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Recent Activity */}
-            {activity && activity.recentAttempts && activity.recentAttempts.length > 0 && (
-                <div className="glass-card">
-                    <h3 style={{ marginBottom: '1.5rem' }}>📝 Recent Activity</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {activity.recentAttempts.map((attempt, idx) => (
-                            <div key={idx} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '1rem',
-                                background: 'rgba(255,255,255,0.05)',
-                                borderRadius: '8px',
-                                border: '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{attempt.quizTitle}</div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                        {attempt.category} • {attempt.difficulty} • {attempt.questionCount} questions
-                                    </div>
-                                </div>
+                            <div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Longest Streak</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>🔥 {userStats.longestStreak}</div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Improvement Rate</div>
                                 <div style={{
-                                    fontSize: '1.25rem',
+                                    fontSize: '1.5rem',
                                     fontWeight: 'bold',
-                                    color: getScoreColor(attempt.score),
-                                    marginRight: '1rem'
+                                    color: improvementRate.improvementRate >= 0 ? '#22c55e' : '#ef4444'
                                 }}>
-                                    {attempt.score}%
-                                </div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', minWidth: '100px', textAlign: 'right' }}>
-                                    {new Date(attempt.completed_at).toLocaleDateString()}
+                                    {improvementRate.improvementRate >= 0 ? '↑' : '↓'} {Math.abs(improvementRate.improvementRate).toFixed(1)}%
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </div>
+
+                    {/* Performance Trend Chart */}
+                    {trends.length > 0 && (
+                        <div className="glass-card">
+                            <h3 style={{ marginBottom: '1.5rem' }}>📈 Performance Trend (Last 30 Days)</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={trends}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" />
+                                    <YAxis stroke="rgba(255,255,255,0.5)" />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'rgba(0,0,0,0.8)',
+                                            border: '1px solid rgba(255,255,255,0.2)',
+                                            borderRadius: '8px'
+                                        }}
+                                    />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="avgScore" stroke="#3b82f6" strokeWidth={2} name="Avg Score" />
+                                    <Line type="monotone" dataKey="bestScore" stroke="#22c55e" strokeWidth={2} name="Best Score" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+
+                    {/* Category Mastery */}
+                    {categoryStats && categoryStats.length > 0 && (
+                        <div className="glass-card">
+                            <h3 style={{ marginBottom: '1.5rem' }}>🎯 Category Mastery</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {categoryStats.map((cat, idx) => (
+                                    <div key={idx} style={{
+                                        background: 'rgba(255,255,255,0.05)',
+                                        padding: '1rem',
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                            <div style={{ fontWeight: '600' }}>
+                                                {cat.category}
+                                                {cat.isMastered && <span style={{ marginLeft: '0.5rem' }}>🏆</span>}
+                                                {cat.needsImprovement && <span style={{ marginLeft: '0.5rem' }}>⚠️</span>}
+                                            </div>
+                                            <div style={{ fontSize: '0.9rem', color: getScoreColor(cat.avgScore) }}>
+                                                {Math.round(cat.avgScore)}% avg
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            height: '8px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            borderRadius: '4px',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${cat.masteryLevel}%`,
+                                                background: getMasteryColor(cat.masteryLevel),
+                                                transition: 'width 0.3s ease'
+                                            }} />
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            gap: '1rem',
+                                            marginTop: '0.5rem',
+                                            fontSize: '0.85rem',
+                                            color: 'var(--text-muted)'
+                                        }}>
+                                            <span>{cat.quizzesCompleted} quizzes</span>
+                                            <span>•</span>
+                                            <span>{cat.totalAttempts} attempts</span>
+                                            <span>•</span>
+                                            <span>Best: {cat.bestScore}%</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Achievements */}
+                    <div className="glass-card">
+                        <h3 style={{ marginBottom: '1.5rem' }}>
+                            🏆 Achievements ({achievements.unlockedCount}/{achievements.totalAchievements})
+                        </h3>
+
+                        {/* Unlocked Achievements */}
+                        {achievements.unlocked.length > 0 && (
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#22c55e' }}>✓ Unlocked</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    {achievements.unlocked.map((achievement, idx) => (
+                                        <div key={idx} style={{
+                                            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1))',
+                                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                                            padding: '1rem',
+                                            borderRadius: '12px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{achievement.icon}</div>
+                                            <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{achievement.name}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{achievement.description}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '0.5rem' }}>
+                                                {new Date(achievement.unlockedAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Locked Achievements */}
+                        {achievements.locked.length > 0 && (
+                            <div>
+                                <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>🔒 Locked</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    {achievements.locked.slice(0, 6).map((achievement, idx) => (
+                                        <div key={idx} style={{
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid var(--glass-border)',
+                                            padding: '1rem',
+                                            borderRadius: '12px',
+                                            textAlign: 'center',
+                                            opacity: 0.6
+                                        }}>
+                                            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem', filter: 'grayscale(100%)' }}>
+                                                {achievement.icon}
+                                            </div>
+                                            <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{achievement.name}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                                {achievement.description}
+                                            </div>
+                                            <div style={{
+                                                height: '4px',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                borderRadius: '2px',
+                                                overflow: 'hidden',
+                                                marginTop: '0.5rem'
+                                            }}>
+                                                <div style={{
+                                                    height: '100%',
+                                                    width: `${achievement.progress}%`,
+                                                    background: 'linear-gradient(90deg, var(--primary), var(--secondary))',
+                                                    transition: 'width 0.3s ease'
+                                                }} />
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                                {Math.round(achievement.progress)}% complete
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Recommendations */}
+                    {recommendations.length > 0 && (
+                        <div className="glass-card">
+                            <h3 style={{ marginBottom: '1.5rem' }}>💡 Personalized Recommendations</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {recommendations.map((rec, idx) => (
+                                    <div key={idx} style={{
+                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                                        padding: '1rem',
+                                        borderRadius: '12px'
+                                    }}>
+                                        <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>{rec.title}</div>
+                                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{rec.message}</div>
+                                        {rec.categories && rec.categories.length > 0 && (
+                                            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {rec.categories.map((cat, i) => (
+                                                    <span key={i} style={{
+                                                        background: 'rgba(99, 102, 241, 0.2)',
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.85rem'
+                                                    }}>
+                                                        {cat}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Recent Activity */}
+                    {activity && activity.recentAttempts && activity.recentAttempts.length > 0 && (
+                        <div className="glass-card">
+                            <h3 style={{ marginBottom: '1.5rem' }}>📝 Recent Activity</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {activity.recentAttempts.map((attempt, idx) => (
+                                    <div key={idx} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '1rem',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{attempt.quizTitle}</div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                {attempt.category} • {attempt.difficulty} • {attempt.questionCount} questions
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '1.25rem',
+                                            fontWeight: 'bold',
+                                            color: getScoreColor(attempt.score),
+                                            marginRight: '1rem'
+                                        }}>
+                                            {attempt.score}%
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', minWidth: '100px', textAlign: 'right' }}>
+                                            {new Date(attempt.completed_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Delete Account Section */}
+                    <div className="glass-card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+                        <h3 style={{ marginBottom: '1rem', color: '#ef4444' }}>Danger Zone</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                            Deleting your account is permanent. All your quizzes, results, and stats will be wiped out.
+                        </p>
+                        <button
+                            onClick={handleDeleteClick}
+                            style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+                            onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+                </>
             )}
 
-            {/* Delete Account Section */}
-            <div className="glass-card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
-                <h3 style={{ marginBottom: '1rem', color: '#ef4444' }}>Danger Zone</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                    Deleting your account is permanent. All your quizzes, results, and stats will be wiped out.
-                </p>
-                <button
-                    onClick={handleDeleteClick}
-                    style={{
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.75rem 1.5rem',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = '#dc2626'}
-                    onMouseLeave={(e) => e.target.style.background = '#ef4444'}
-                >
-                    Delete Account
-                </button>
-            </div>
+            {/* Data & Privacy Tab */}
+            {activeTab === 'data-privacy' && (
+                <div className="glass-card">
+                    <DataManagement />
+                </div>
+            )}
         </div>
     );
 };

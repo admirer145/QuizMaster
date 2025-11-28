@@ -14,6 +14,9 @@ import AIGenerator from './components/AIGenerator';
 import QuizReview from './components/QuizReview';
 import UserProfile from './components/UserProfile';
 import Logo from './components/Logo';
+import LegalFooter from './components/LegalFooter';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
@@ -22,15 +25,34 @@ const AppContent = () => {
   const [activeResultId, setActiveResultId] = useState(null);
   const [editQuizId, setEditQuizId] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfService, setShowTermsOfService] = useState(false);
+
+  // Handle hash-based routing for legal documents
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#privacy-policy') {
+        setShowPrivacyPolicy(true);
+      } else if (hash === '#terms-of-service') {
+        setShowTermsOfService(true);
+      }
+    };
+
+    handleHashChange(); // Check on mount
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
   if (!user) {
     return (
-      <div className="container">
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <h1>QuizMaster</h1>
         <AuthForm />
+        <LegalFooter />
       </div>
     );
   }
@@ -425,6 +447,22 @@ const AppContent = () => {
           onBack={backToMenu}
         />
       )}
+
+      {/* Legal Document Modals */}
+      {showPrivacyPolicy && (
+        <PrivacyPolicy onClose={() => {
+          setShowPrivacyPolicy(false);
+          window.location.hash = '';
+        }} />
+      )}
+      {showTermsOfService && (
+        <TermsOfService onClose={() => {
+          setShowTermsOfService(false);
+          window.location.hash = '';
+        }} />
+      )}
+
+      <LegalFooter />
     </div>
   );
 };

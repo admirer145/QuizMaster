@@ -14,9 +14,25 @@ if (SECRET_KEY === 'secret_key') {
 
 router.post('/signup', authLimiter, validateAuth, async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, acceptedTerms, acceptedPrivacy } = req.body;
+
+        // Validate terms acceptance
+        if (!acceptedTerms || !acceptedPrivacy) {
+            return res.status(400).json({
+                error: 'You must accept the Terms of Service and Privacy Policy to create an account'
+            });
+        }
 
         const user = await User.create(username, password);
+
+        // Record terms acceptance timestamps
+        const { User: UserModel } = require('../models/sequelize');
+        const userRecord = await UserModel.findByPk(user.id);
+        const now = new Date();
+        userRecord.terms_accepted_at = now;
+        userRecord.privacy_accepted_at = now;
+        await userRecord.save();
+
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             SECRET_KEY,

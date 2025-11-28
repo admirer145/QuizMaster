@@ -19,9 +19,16 @@ const QuizResult = require('./models/QuizResult');
 
 const app = express();
 const server = http.createServer(app);
+
+// CORS configuration
+const allowedOrigins = process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(',')
+    : ["http://localhost:5173", "http://localhost:5174"];
+
+
 const io = new Server(server, {
     cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:5173",
+        origin: process.env.CLIENT_URL || allowedOrigins,
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -40,10 +47,6 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false, // Allow embedding for development
 }));
 
-// CORS configuration
-const allowedOrigins = process.env.CLIENT_URL
-    ? process.env.CLIENT_URL.split(',')
-    : ["http://localhost:5173"];
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -112,6 +115,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/results', require('./routes/results'));
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/legal', require('./routes/legal'));
 
 // Socket.io Logic
 io.on('connection', (socket) => {

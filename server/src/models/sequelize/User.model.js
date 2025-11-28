@@ -37,6 +37,18 @@ module.exports = (sequelize) => {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
         },
+        terms_accepted_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
+        privacy_accepted_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
+        account_deletion_requested_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
     }, {
         tableName: 'users',
         timestamps: false,

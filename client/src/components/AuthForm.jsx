@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
+import PrivacyPolicy from './PrivacyPolicy';
+import TermsOfService from './TermsOfService';
 
 const AuthForm = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -11,6 +13,10 @@ const AuthForm = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+    const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+    const [showTermsOfService, setShowTermsOfService] = useState(false);
     const { login } = useAuth();
 
     const handleSubmit = async (e) => {
@@ -24,13 +30,23 @@ const AuthForm = () => {
             return;
         }
 
+        // Validate terms acceptance for signup
+        if (!isLogin && (!acceptedTerms || !acceptedPrivacy)) {
+            setError('You must accept the Terms of Service and Privacy Policy to create an account');
+            return;
+        }
+
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
 
         try {
+            const requestBody = isLogin
+                ? { username, password }
+                : { username, password, acceptedTerms, acceptedPrivacy };
+
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify(requestBody),
             });
 
             const data = await response.json();
@@ -249,6 +265,91 @@ const AuthForm = () => {
                         )}
                     </div>
                 )}
+
+                {/* Terms and Privacy Acceptance for Signup */}
+                {!isLogin && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            border: '1px solid rgba(99, 102, 241, 0.2)',
+                            borderRadius: '8px',
+                            padding: '1rem'
+                        }}>
+                            <label style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                marginBottom: '0.75rem',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={acceptedTerms}
+                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                    style={{
+                                        marginRight: '0.5rem',
+                                        marginTop: '0.2rem',
+                                        cursor: 'pointer',
+                                        width: '16px',
+                                        height: '16px'
+                                    }}
+                                />
+                                <span style={{ color: 'var(--text-primary)' }}>
+                                    I accept the{' '}
+                                    <span
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setShowTermsOfService(true);
+                                        }}
+                                        style={{
+                                            color: '#818cf8',
+                                            textDecoration: 'underline',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Terms of Service
+                                    </span>
+                                </span>
+                            </label>
+                            <label style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={acceptedPrivacy}
+                                    onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                                    style={{
+                                        marginRight: '0.5rem',
+                                        marginTop: '0.2rem',
+                                        cursor: 'pointer',
+                                        width: '16px',
+                                        height: '16px'
+                                    }}
+                                />
+                                <span style={{ color: 'var(--text-primary)' }}>
+                                    I accept the{' '}
+                                    <span
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setShowPrivacyPolicy(true);
+                                        }}
+                                        style={{
+                                            color: '#818cf8',
+                                            textDecoration: 'underline',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Privacy Policy
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                )}
+
                 <button
                     type="submit"
                     style={{
@@ -294,6 +395,8 @@ const AuthForm = () => {
                         setConfirmPassword('');
                         setShowPassword(false);
                         setShowConfirmPassword(false);
+                        setAcceptedTerms(false);
+                        setAcceptedPrivacy(false);
                     }}
                     style={{
                         background: 'none',
@@ -310,6 +413,14 @@ const AuthForm = () => {
                     {isLogin ? 'Sign Up' : 'Login'}
                 </button>
             </div>
+
+            {/* Legal Document Modals */}
+            {showPrivacyPolicy && (
+                <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />
+            )}
+            {showTermsOfService && (
+                <TermsOfService onClose={() => setShowTermsOfService(false)} />
+            )}
         </div>
     );
 };
