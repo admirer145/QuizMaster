@@ -1,0 +1,132 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 6
+      name: "Profile Load"
+    - duration: 60
+      arrivalRate: 12
+      name: "Heavy Profile Load"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - name: "View Profile Stats"
+    weight: 4
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "profile_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get profile stats
+      - get:
+          url: "/api/profile/stats/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "userStats"
+
+  - name: "View Activity and Achievements"
+    weight: 3
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "activity_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get activity data
+      - get:
+          url: "/api/profile/activity/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Get achievements
+      - get:
+          url: "/api/profile/achievements/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "unlocked"
+            - hasProperty: "locked"
+
+  - name: "View Performance Trends"
+    weight: 2
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "trends_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedPrivacy: true
+            acceptedTerms: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get performance trends
+      - get:
+          url: "/api/profile/trends/{{ userId }}?days=30"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Get Recommendations"
+    weight: 1
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "rec_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get recommendations
+      - get:
+          url: "/api/profile/recommendations/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200

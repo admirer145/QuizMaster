@@ -1,0 +1,23 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Baseline - Low Load"
+  
+scenarios:
+  - name: "Baseline Performance Test"
+    flow:
+      # Test public quizzes endpoint
+      - get:
+          url: "/api/quizzes/public"
+          expect:
+            - statusCode: 200
+      
+      # Test specific quiz retrieval
+      - get:
+          url: "/api/quizzes/1"
+          expect:
+            - statusCode: 
+                - 200
+                - 404

@@ -1,0 +1,108 @@
+config:
+  target: "http://localhost:3001"
+  ws:
+    engine: "socketio"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "WebSocket Load - Game Sessions"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - engine: "socketio"
+    name: "Complete Quiz Game Session"
+    flow:
+      # First, create a user and get auth token via HTTP
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "ws_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get a quiz ID
+      - get:
+          url: "/api/quizzes/public"
+          capture:
+            - json: "$[0].id"
+              as: "quizId"
+      
+      - think: 1
+      
+      # Connect to WebSocket
+      - emit:
+          channel: "join_game"
+          data:
+            userId: "{{ userId }}"
+            quizId: "{{ quizId }}"
+      
+      - think: 2
+      
+      # Submit answers (simulate 5 questions)
+      - emit:
+          channel: "submit_answer"
+          data:
+            quizId: "{{ quizId }}"
+            questionId: 1
+            answer: "A"
+            timeTaken: 5
+      
+      - think: 3
+      
+      - emit:
+          channel: "submit_answer"
+          data:
+            quizId: "{{ quizId }}"
+            questionId: 2
+            answer: "B"
+            timeTaken: 7
+      
+      - think: 3
+      
+      - emit:
+          channel: "submit_answer"
+          data:
+            quizId: "{{ quizId }}"
+            questionId: 3
+            answer: "C"
+            timeTaken: 6
+      
+      - think: 3
+      
+      - emit:
+          channel: "submit_answer"
+          data:
+            quizId: "{{ quizId }}"
+            questionId: 4
+            answer: "D"
+            timeTaken: 8
+      
+      - think: 3
+      
+      - emit:
+          channel: "submit_answer"
+          data:
+            quizId: "{{ quizId }}"
+            questionId: 5
+            answer: "A"
+            timeTaken: 5
+      
+      - think: 2
+      
+      # Save final result
+      - emit:
+          channel: "save_result"
+          data:
+            quizId: "{{ quizId }}"
+            score: 30
+            timeTaken: 34
+      
+      - think: 1

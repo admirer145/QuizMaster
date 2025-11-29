@@ -1,0 +1,31 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      name: "Ramp up load"
+    - duration: 180
+      arrivalRate: 20
+      name: "Sustained load"
+  plugins:
+    metrics-by-endpoint:
+      stripQueryString: true
+  processor: "./scripts/helpers.js"
+  variables:
+    baseUrl: "http://localhost:3001"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  
+scenarios:
+  - name: "Health Check"
+    weight: 1
+    flow:
+      - get:
+          url: "/api/quizzes/public"
+          capture:
+            - json: "$[0].id"
+              as: "quizId"

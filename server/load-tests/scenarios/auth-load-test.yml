@@ -1,0 +1,76 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Authentication Load Test"
+    - duration: 60
+      arrivalRate: 10
+      name: "Increased Auth Load"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - name: "User Signup Flow"
+    weight: 3
+    flow:
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "loadtest_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+          expect:
+            - statusCode: 
+                - 201
+                - 409  # Username already exists
+      
+      - think: 2
+
+  - name: "User Login Flow"
+    weight: 7
+    flow:
+      # First create a user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "login_test_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.user.username"
+              as: "testUsername"
+      
+      - think: 1
+      
+      # Then login with that user
+      - post:
+          url: "/api/auth/login"
+          json:
+            username: "{{ testUsername }}"
+            password: "TestPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+          expect:
+            - statusCode: 200
+            - hasProperty: "token"
+
+  - name: "Invalid Login Attempts"
+    weight: 2
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            username: "nonexistent_user_{{ $randomString() }}"
+            password: "WrongPassword123!"
+          expect:
+            - statusCode: 401

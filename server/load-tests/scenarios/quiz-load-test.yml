@@ -1,0 +1,96 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Quiz Browsing Load"
+    - duration: 90
+      arrivalRate: 20
+      name: "Heavy Quiz Load"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - name: "Browse Public Quizzes"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/quizzes/public"
+          expect:
+            - statusCode: 200
+            - contentType: json
+          capture:
+            - json: "$[0].id"
+              as: "quizId"
+      
+      - think: 1
+      
+      # Get specific quiz details
+      - get:
+          url: "/api/quizzes/{{ quizId }}"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+
+  - name: "Authenticated Quiz Operations"
+    weight: 3
+    flow:
+      # Create user and login
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "quiz_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+      
+      - think: 1
+      
+      # Get user's library
+      - get:
+          url: "/api/quizzes/my-library"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+      
+      # Browse public quizzes
+      - get:
+          url: "/api/quizzes/public"
+          capture:
+            - json: "$[0].id"
+              as: "quizId"
+      
+      - think: 1
+      
+      # Add quiz to library
+      - post:
+          url: "/api/quizzes/{{ quizId }}/add-to-library"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+
+  - name: "Quiz Search and Filter"
+    weight: 2
+    flow:
+      - get:
+          url: "/api/quizzes/public?category=Science"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      - get:
+          url: "/api/quizzes/public?difficulty=medium"
+          expect:
+            - statusCode: 200

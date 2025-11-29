@@ -1,0 +1,120 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 120
+      arrivalRate: 3
+      name: "Realistic User Journey"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - name: "Complete User Journey - New User"
+    weight: 1
+    flow:
+      # 1. Sign up
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "journey_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user.id"
+              as: "userId"
+          expect:
+            - statusCode: 201
+      
+      - think: 3
+      
+      # 2. Browse public quizzes
+      - get:
+          url: "/api/quizzes/public"
+          capture:
+            - json: "$[0].id"
+              as: "quizId1"
+            - json: "$[1].id"
+              as: "quizId2"
+          expect:
+            - statusCode: 200
+      
+      - think: 5
+      
+      # 3. View specific quiz details
+      - get:
+          url: "/api/quizzes/{{ quizId1 }}"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+      
+      - think: 4
+      
+      # 4. Add quiz to library
+      - post:
+          url: "/api/quizzes/{{ quizId1 }}/add-to-library"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+      
+      - think: 2
+      
+      # 5. View my library
+      - get:
+          url: "/api/quizzes/my-library"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 3
+      
+      # 6. Check leaderboard
+      - get:
+          url: "/api/leaderboard?filter=first&page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 5
+      
+      # 7. View profile stats
+      - get:
+          url: "/api/profile/stats/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 3
+      
+      # 8. View achievements
+      - get:
+          url: "/api/profile/achievements/{{ userId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 4
+      
+      # 9. Browse more quizzes
+      - get:
+          url: "/api/quizzes/public"
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+      
+      # 10. Check leaderboard again with different filter
+      - get:
+          url: "/api/leaderboard?filter=all&page=1&limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200

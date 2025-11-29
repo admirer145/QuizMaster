@@ -1,0 +1,133 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 8
+      name: "Leaderboard Load"
+    - duration: 60
+      arrivalRate: 15
+      name: "Heavy Leaderboard Load"
+  processor: "../scripts/helpers.js"
+
+scenarios:
+  - name: "View Leaderboard - First Attempts"
+    weight: 4
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "leaderboard_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - think: 1
+      
+      # View leaderboard with 'first' filter (default)
+      - get:
+          url: "/api/leaderboard?filter=first&page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data"
+            - hasProperty: "meta"
+
+  - name: "View Leaderboard - All Attempts"
+    weight: 3
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "leaderboard_all_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - think: 1
+      
+      # View leaderboard with 'all' filter
+      - get:
+          url: "/api/leaderboard?filter=all&page=1&limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Leaderboard Pagination"
+    weight: 2
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "page_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - think: 1
+      
+      # Page 1
+      - get:
+          url: "/api/leaderboard?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Page 2
+      - get:
+          url: "/api/leaderboard?page=2&limit=10"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Leaderboard Search"
+    weight: 1
+    flow:
+      # Create and login user
+      - post:
+          url: "/api/auth/signup"
+          json:
+            username: "search_user_{{ $randomString() }}_{{ $timestamp }}"
+            password: "TestPassword123!"
+            acceptedTerms: true
+            acceptedPrivacy: true
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      
+      - think: 1
+      
+      # Search by player
+      - get:
+          url: "/api/leaderboard?player=test&filter=first"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+      
+      # Search by quiz
+      - get:
+          url: "/api/leaderboard?quiz=science&filter=all"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200

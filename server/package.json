@@ -9,7 +9,19 @@
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "migrate:status": "sequelize-cli db:migrate:status",
-    "migration:create": "sequelize-cli migration:generate --name"
+    "migration:create": "sequelize-cli migration:generate --name",
+    "load-test:baseline": "artillery run load-tests/scenarios/baseline-test.yml",
+    "load-test:auth": "artillery run load-tests/scenarios/auth-load-test.yml",
+    "load-test:quiz": "artillery run load-tests/scenarios/quiz-load-test.yml",
+    "load-test:leaderboard": "artillery run load-tests/scenarios/leaderboard-load-test.yml",
+    "load-test:profile": "artillery run load-tests/scenarios/profile-load-test.yml",
+    "load-test:websocket": "artillery run load-tests/scenarios/websocket-load-test.yml",
+    "load-test:journey": "artillery run load-tests/scenarios/full-user-journey.yml",
+    "load-test:stress": "node load-tests/scripts/stress-test.js",
+    "load-test:all": "node load-tests/scripts/run-all-tests.js",
+    "benchmark": "node load-tests/scripts/benchmark.js",
+    "load-test:report": "node load-tests/scripts/report-generator.js",
+    "load-test:analyze": "node load-tests/scripts/analyze-results.js"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +46,9 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "sequelize-cli": "^6.6.3"
+    "sequelize-cli": "^6.6.3",
+    "artillery": "^2.0.0",
+    "autocannon": "^7.15.0",
+    "artillery-plugin-metrics-by-endpoint": "^1.8.0"
   }
 }
