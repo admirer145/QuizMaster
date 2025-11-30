@@ -91,6 +91,7 @@ app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/results', require('./routes/results'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/legal', require('./routes/legal'));
+app.use('/api/social', require('./routes/social'));
 
 // Socket.io Logic
 io.on('connection', (socket) => {

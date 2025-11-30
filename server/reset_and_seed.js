@@ -242,8 +242,8 @@ async function resetAndSeed() {
             const hashedPassword = await bcrypt.hash('system123', 10);
             const systemUserId = await new Promise((resolve, reject) => {
                 db.run(
-                    'INSERT INTO users (username, password) VALUES (?, ?)',
-                    ['System', hashedPassword],
+                    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+                    ['System', hashedPassword, 'admin'],
                     function (err) {
                         if (err) reject(err);
                         else resolve(this.lastID);

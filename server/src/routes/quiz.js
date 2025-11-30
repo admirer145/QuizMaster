@@ -534,11 +534,15 @@ router.post('/:id/questions', authenticateToken, validateQuestion, async (req, r
         }
 
         const questionId = await Quiz.addQuestion(quizId, req.body);
+
+        // Invalidate cache for this quiz to ensure fresh data
+        cache.delete(`quiz_${quizId}`);
+
         res.status(201).json({ id: questionId });
     } catch (err) {
         logger.error('Failed to add question to quiz', {
             error: err,
-            context: { quizId: req.params.id, userId: req.user.id },
+            context: { quizId: req.params.id },
             requestId: req.requestId
         });
         res.status(500).json({ error: 'Failed to add question' });
@@ -572,6 +576,9 @@ router.put('/questions/:questionId', authenticateToken, async (req, res) => {
             correct_answer: req.body.correctAnswer,
         });
 
+        // Invalidate cache for this quiz
+        cache.delete(`quiz_${question.quiz.id}`);
+
         res.json({ message: 'Question updated successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -598,10 +605,15 @@ router.delete('/questions/:questionId', authenticateToken, async (req, res) => {
         }
 
         // Delete related question attempts first
-        await QuestionAttempt.destroy({ where: { question_id: questionId } });
+        await QuestionAttempt.destroy({
+            where: { question_id: questionId }
+        });
 
         // Delete the question
         await question.destroy();
+
+        // Invalidate cache for this quiz
+        cache.delete(`quiz_${question.quiz.id}`);
 
         res.json({ message: 'Question deleted successfully' });
     } catch (err) {

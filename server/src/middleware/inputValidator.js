@@ -65,11 +65,24 @@ const validateQuestion = [
         .withMessage('Correct answer is required')
         .escape(),
     body('options')
-        .optional()
-        .isArray({ min: 2, max: 6 })
-        .withMessage('Options must be an array with 2-6 items'),
+        .custom((value, { req }) => {
+            // For true_false questions, options can be null or undefined
+            if (req.body.type === 'true_false') {
+                return true;
+            }
+            // For multiple_choice, options must be an array with 2-6 items
+            if (req.body.type === 'multiple_choice') {
+                if (!Array.isArray(value)) {
+                    throw new Error('Options must be an array for multiple choice questions');
+                }
+                if (value.length < 2 || value.length > 6) {
+                    throw new Error('Options must contain 2-6 items for multiple choice questions');
+                }
+            }
+            return true;
+        }),
     body('options.*')
-        .optional()
+        .if(body('type').equals('multiple_choice'))
         .trim()
         .isLength({ min: 1, max: 200 })
         .withMessage('Each option must be between 1 and 200 characters')

@@ -11,6 +11,7 @@ import CategoryMastery from './profile/CategoryMastery';
 import AchievementsSection from './profile/AchievementsSection';
 import RecommendationsSection from './profile/RecommendationsSection';
 import RecentActivitySection from './profile/RecentActivitySection';
+import { SocialStats } from './SocialFeatures';
 
 const UserProfile = ({ onBack }) => {
     const { user, logout, fetchWithAuth } = useAuth();
@@ -21,6 +22,7 @@ const UserProfile = ({ onBack }) => {
     const [trendsState, setTrendsState] = useState({ data: [], loading: true, error: null });
     const [achievementsState, setAchievementsState] = useState({ data: null, loading: true, error: null });
     const [recommendationsState, setRecommendationsState] = useState({ data: [], loading: true, error: null });
+    const [socialProfile, setSocialProfile] = useState(null);
 
     const [activeTab, setActiveTab] = useState('overview'); // overview, data-privacy
 
@@ -36,6 +38,7 @@ const UserProfile = ({ onBack }) => {
         fetchTrends();
         fetchAchievements();
         fetchRecommendations();
+        fetchSocialProfile();
     };
 
     const handleFetchError = (res) => {
@@ -117,6 +120,18 @@ const UserProfile = ({ onBack }) => {
         }
     };
 
+    const fetchSocialProfile = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/social/profile/${user.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSocialProfile(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch social profile:', err);
+        }
+    };
+
     return (
         <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexDirection: 'column', gap: '2rem', position: 'relative' }}>
 
@@ -128,6 +143,20 @@ const UserProfile = ({ onBack }) => {
                     userStats={statsState.data?.userStats}
                     onBack={onBack}
                 />
+
+                {/* Social Stats */}
+                {socialProfile && (
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
+                        <h3 style={{ margin: '0 0 1rem 0' }}>Social</h3>
+                        <SocialStats
+                            followers={socialProfile.socialStats?.followers || 0}
+                            following={socialProfile.socialStats?.following || 0}
+                            quizzesCreated={socialProfile.socialStats?.quizzesCreated || 0}
+                            totalLikes={socialProfile.socialStats?.totalLikes || 0}
+                        />
+                    </div>
+                )}
+
                 <QuickStats
                     stats={statsState.data}
                     loading={statsState.loading}

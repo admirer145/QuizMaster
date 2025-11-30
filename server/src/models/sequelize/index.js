@@ -10,6 +10,9 @@ const QuizReviewModel = require('./QuizReview.model');
 const UserQuizLibraryModel = require('./UserQuizLibrary.model');
 const UserAchievementModel = require('./UserAchievement.model');
 const UserStatsModel = require('./UserStats.model');
+const UserFollowModel = require('./UserFollow.model');
+const QuizLikeModel = require('./QuizLike.model');
+const UserSocialStatsModel = require('./UserSocialStats.model');
 
 // Initialize models
 const User = UserModel(sequelize);
@@ -21,6 +24,9 @@ const QuizReview = QuizReviewModel(sequelize);
 const UserQuizLibrary = UserQuizLibraryModel(sequelize);
 const UserAchievement = UserAchievementModel(sequelize);
 const UserStats = UserStatsModel(sequelize);
+const UserFollow = UserFollowModel(sequelize);
+const QuizLike = QuizLikeModel(sequelize);
+const UserSocialStats = UserSocialStatsModel(sequelize);
 
 // Define associations
 
@@ -31,7 +37,11 @@ User.hasMany(QuestionAttempt, { foreignKey: 'user_id', as: 'questionAttempts' })
 User.hasMany(QuizReview, { foreignKey: 'reviewer_id', as: 'reviews' });
 User.hasMany(UserAchievement, { foreignKey: 'user_id', as: 'achievements' });
 User.hasOne(UserStats, { foreignKey: 'user_id', as: 'stats' });
+User.hasOne(UserSocialStats, { foreignKey: 'user_id', as: 'socialStats' });
 User.belongsToMany(Quiz, { through: UserQuizLibrary, foreignKey: 'user_id', as: 'library' });
+User.hasMany(UserFollow, { foreignKey: 'follower_id', as: 'following' });
+User.hasMany(UserFollow, { foreignKey: 'following_id', as: 'followers' });
+User.hasMany(QuizLike, { foreignKey: 'user_id', as: 'likedQuizzes' });
 
 // Quiz associations
 Quiz.belongsTo(User, { foreignKey: 'creator_id', as: 'creator' });
@@ -40,6 +50,7 @@ Quiz.hasMany(Result, { foreignKey: 'quiz_id', as: 'results' });
 Quiz.hasMany(QuestionAttempt, { foreignKey: 'quiz_id', as: 'questionAttempts' });
 Quiz.hasMany(QuizReview, { foreignKey: 'quiz_id', as: 'reviews' });
 Quiz.belongsToMany(User, { through: UserQuizLibrary, foreignKey: 'quiz_id', as: 'usersInLibrary' });
+Quiz.hasMany(QuizLike, { foreignKey: 'quiz_id', as: 'likes' });
 
 // Question associations
 Question.belongsTo(Quiz, { foreignKey: 'quiz_id', as: 'quiz' });
@@ -70,6 +81,17 @@ UserAchievement.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 // UserStats associations
 UserStats.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// UserFollow associations
+UserFollow.belongsTo(User, { foreignKey: 'follower_id', as: 'follower' });
+UserFollow.belongsTo(User, { foreignKey: 'following_id', as: 'followingUser' });
+
+// QuizLike associations
+QuizLike.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+QuizLike.belongsTo(Quiz, { foreignKey: 'quiz_id', as: 'quiz' });
+
+// UserSocialStats associations
+UserSocialStats.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 // Export models and sequelize instance
 module.exports = {
     sequelize,
@@ -82,4 +104,7 @@ module.exports = {
     UserQuizLibrary,
     UserAchievement,
     UserStats,
+    UserFollow,
+    QuizLike,
+    UserSocialStats,
 };

@@ -10,6 +10,7 @@ import CategoryMastery from './profile/CategoryMastery';
 import AchievementsSection from './profile/AchievementsSection';
 import RecommendationsSection from './profile/RecommendationsSection';
 import RecentActivitySection from './profile/RecentActivitySection';
+import { FollowButton, SocialStats, LikeButton } from './SocialFeatures';
 
 const PublicUserProfile = ({ userId, onBack }) => {
     const { user: currentUser, logout, fetchWithAuth } = useAuth();
@@ -23,6 +24,9 @@ const PublicUserProfile = ({ userId, onBack }) => {
     const [recommendationsState, setRecommendationsState] = useState({ data: [], loading: true, error: null });
     const [showComparison, setShowComparison] = useState(false);
     const [comparisonData, setComparisonData] = useState(null);
+    const [socialProfile, setSocialProfile] = useState(null);
+    const [userQuizzes, setUserQuizzes] = useState([]);
+    const [quizzesLoading, setQuizzesLoading] = useState(true);
 
     useEffect(() => {
         if (userId) {
@@ -37,6 +41,8 @@ const PublicUserProfile = ({ userId, onBack }) => {
         fetchTrends();
         fetchAchievements();
         fetchRecommendations();
+        fetchSocialProfile();
+        fetchUserQuizzes();
     };
 
     const handleFetchError = (res) => {
@@ -145,6 +151,33 @@ const PublicUserProfile = ({ userId, onBack }) => {
         }
     };
 
+    const fetchSocialProfile = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/social/profile/${userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSocialProfile(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch social profile:', err);
+        }
+    };
+
+    const fetchUserQuizzes = async () => {
+        try {
+            setQuizzesLoading(true);
+            const res = await fetch(`${API_URL}/api/social/profile/${userId}/quizzes?limit=6`);
+            if (res.ok) {
+                const data = await res.json();
+                setUserQuizzes(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch user quizzes:', err);
+        } finally {
+            setQuizzesLoading(false);
+        }
+    };
+
     if (!userData) {
         return (
             <div className="glass-card" style={{ maxWidth: '1200px', width: '100%', textAlign: 'center', padding: '3rem' }}>
@@ -164,6 +197,28 @@ const PublicUserProfile = ({ userId, onBack }) => {
                     onBack={onBack}
                     isPublicView={true}
                 />
+
+                {/* Social Stats & Follow Button */}
+                {socialProfile && (
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>Social</h3>
+                            {currentUser.id !== userId && (
+                                <FollowButton
+                                    userId={userId}
+                                    initialFollowing={socialProfile.isFollowing || false}
+                                />
+                            )}
+                        </div>
+                        <SocialStats
+                            followers={socialProfile.socialStats?.followers || 0}
+                            following={socialProfile.socialStats?.following || 0}
+                            quizzesCreated={socialProfile.socialStats?.quizzesCreated || 0}
+                            totalLikes={socialProfile.socialStats?.totalLikes || 0}
+                        />
+                    </div>
+                )}
+
                 <QuickStats
                     stats={statsState.data}
                     loading={statsState.loading}
@@ -289,6 +344,62 @@ const PublicUserProfile = ({ userId, onBack }) => {
                 loading={activityState.loading}
                 error={activityState.error}
             />
+
+            {/* Created Quizzes Section */}
+            <div className="glass-card">
+                <h3 style={{ marginBottom: '1.5rem' }}>📝 Created Quizzes</h3>
+                {quizzesLoading ? (
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="skeleton" style={{ height: '150px', borderRadius: '12px' }} />
+                        ))}
+                    </div>
+                ) : userQuizzes.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📚</div>
+                        <p>No public quizzes created yet</p>
+                    </div>
+                ) : (
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {userQuizzes.map(quiz => (
+                            <div key={quiz.id} style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                borderRadius: '12px',
+                                padding: '1rem',
+                                border: '1px solid var(--glass-border)',
+                                transition: 'all 0.3s'
+                            }}
+                                className="hover-lift">
+                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>{quiz.title}</h4>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                                    <span style={{
+                                        background: 'rgba(99, 102, 241, 0.2)',
+                                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                                        color: '#a5b4fc',
+                                        padding: '0.2rem 0.6rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: '600'
+                                    }}>{quiz.category}</span>
+                                    <span style={{
+                                        background: 'rgba(251, 146, 60, 0.2)',
+                                        border: '1px solid rgba(251, 146, 60, 0.3)',
+                                        color: '#fb923c',
+                                        padding: '0.2rem 0.6rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: '600'
+                                    }}>{quiz.difficulty}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    <span>📝 {quiz.dataValues?.questionCount || 0} questions</span>
+                                    <span>❤️ {quiz.dataValues?.likesCount || 0} likes</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

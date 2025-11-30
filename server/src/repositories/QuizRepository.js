@@ -89,6 +89,38 @@ class QuizRepository {
     }
 
     /**
+     * Get public quizzes created by a user (for profile display)
+     * @param {number} userId 
+     * @param {number} limit 
+     * @param {number} offset 
+     * @returns {Promise<Array>}
+     */
+    async findByCreatorPublic(userId, limit = 10, offset = 0) {
+        return await Quiz.findAll({
+            where: {
+                creator_id: userId,
+                is_public: true,
+                status: 'approved'
+            },
+            attributes: {
+                include: [
+                    [
+                        sequelize.literal('(SELECT COUNT(*) FROM questions WHERE questions.quiz_id = Quiz.id)'),
+                        'questionCount'
+                    ],
+                    [
+                        sequelize.literal('(SELECT COUNT(*) FROM quiz_likes WHERE quiz_likes.quiz_id = Quiz.id)'),
+                        'likesCount'
+                    ]
+                ]
+            },
+            order: [['created_at', 'DESC']],
+            limit,
+            offset
+        });
+    }
+
+    /**
      * Update quiz status
      * @param {number} id 
      * @param {string} status 

@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
+import { LikeButton } from './SocialFeatures';
 
 const Home = ({ onStartQuiz, onViewReport }) => {
     const { fetchWithAuth } = useAuth();
     const { showSuccess, showError } = useToast();
     const [library, setLibrary] = useState({ recentlyAdded: [], completed: [] });
     const [loading, setLoading] = useState(true);
+    const [likesData, setLikesData] = useState({}); // Store like status and counts
 
     useEffect(() => {
         fetchLibrary();
@@ -31,6 +33,38 @@ const Home = ({ onStartQuiz, onViewReport }) => {
             setLibrary({ recentlyAdded: [], completed: [] });
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Fetch like status for all quizzes
+    useEffect(() => {
+        const allQuizzes = [...library.recentlyAdded, ...library.completed];
+        allQuizzes.forEach(quiz => {
+            if (quiz.is_public) {
+                fetchLikeStatus(quiz.id);
+            }
+        });
+    }, [library]);
+
+    const fetchLikeStatus = async (quizId) => {
+        try {
+            const [likedRes, likesRes] = await Promise.all([
+                fetchWithAuth(`${API_URL}/api/social/quizzes/${quizId}/has-liked`),
+                fetch(`${API_URL}/api/social/quizzes/${quizId}/likes`)
+            ]);
+
+            const hasLiked = likedRes.ok ? (await likedRes.json()).hasLiked : false;
+            const likesInfo = likesRes.ok ? await likesRes.json() : { count: 0 };
+
+            setLikesData(prev => ({
+                ...prev,
+                [quizId]: {
+                    hasLiked,
+                    count: likesInfo.count || 0
+                }
+            }));
+        } catch (err) {
+            console.error('Failed to fetch like status:', err);
         }
     };
 
@@ -137,6 +171,20 @@ const Home = ({ onStartQuiz, onViewReport }) => {
                 </span>
             </div>
 
+            {/* Creator Info (for public quizzes) */}
+            {quiz.creator && quiz.is_public && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.85rem'
+                }}>
+                    <span>👤</span>
+                    <span>by {quiz.creator.username}</span>
+                </div>
+            )}
+
             {/* Question Count or Score */}
             <div style={{
                 display: 'flex',
@@ -159,35 +207,64 @@ const Home = ({ onStartQuiz, onViewReport }) => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', flexWrap: 'wrap' }}>
-                {isCompleted && (
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Like Button Row (for public quizzes) */}
+                {quiz.is_public && likesData[quiz.id] && (
+                    <LikeButton
+                        quizId={quiz.id}
+                        initialLiked={likesData[quiz.id].hasLiked}
+                        initialCount={likesData[quiz.id].count}
+                        onLikeChange={(liked, count) => {
+                            setLikesData(prev => ({
+                                ...prev,
+                                [quiz.id]: { hasLiked: liked, count }
+                            }));
+                        }}
+                    />
+                )}
+
+                {/* Start/View Buttons */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {isCompleted && (
+                        <button
+                            onClick={() => onStartQuiz(quiz.id)}
+                            style={{
+                                flex: 1,
+                                background: 'rgba(255,255,255,0.1)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                padding: '0.75rem',
+                                fontSize: '0.95rem'
+                            }}
+                        >
+                            🔄 Retake {quiz.attemptCount > 1 ? `(${quiz.attemptCount} attempts)` : ''}
+                        </button>
+                    )}
                     <button
-                        onClick={() => onStartQuiz(quiz.id)}
+                        onClick={() => isCompleted ? onViewReport(quiz.result_id) : onStartQuiz(quiz.id)}
                         style={{
                             flex: 1,
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.2)',
+                            background: isCompleted
+                                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))'
+                                : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                            border: isCompleted ? '1px solid rgba(99, 102, 241, 0.4)' : 'none',
+                            color: 'white',
                             padding: '0.75rem',
-                            fontSize: '0.95rem'
+                            fontSize: '0.95rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.02)';
+                            e.target.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.boxShadow = 'none';
                         }}
                     >
-                        🔄 Retake {quiz.attemptCount > 1 ? `(${quiz.attemptCount} attempts)` : ''}
+                        {isCompleted ? '📊 View Report' : '▶️ Start Quiz'}
                     </button>
-                )}
-                <button
-                    onClick={() => isCompleted ? onViewReport(quiz.result_id) : onStartQuiz(quiz.id)}
-                    style={{
-                        flex: 1,
-                        background: isCompleted
-                            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))'
-                            : 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                        border: isCompleted ? '1px solid rgba(99, 102, 241, 0.5)' : 'none',
-                        padding: '0.75rem',
-                        fontSize: '0.95rem'
-                    }}
-                >
-                    {isCompleted ? '📊 View Report' : '▶️ Start Quiz'}
-                </button>
+                </div>
             </div>
         </div>
     );

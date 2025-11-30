@@ -23,6 +23,7 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
     const [existingQuestions, setExistingQuestions] = useState([]);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [loading, setLoading] = useState(!!editQuizId);
+    const [validationErrors, setValidationErrors] = useState({});
 
     // Load quiz data if editing
     useEffect(() => {
@@ -44,7 +45,8 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
             });
             setCreatedQuizId(editQuizId);
             setExistingQuestions(data.questions || []);
-            setQuestionCount(data.questions?.length || 0);
+            const count = data.questions?.length || 0;
+            setQuestionCount(count); // Update question count
             setStep(2); // Go directly to adding questions
             setLoading(false);
         } catch (err) {
@@ -55,6 +57,7 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
 
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
+        setValidationErrors({}); // Clear previous errors
         try {
             const response = await fetchWithAuth(`${API_URL}/api/quizzes`, {
                 method: 'POST',
@@ -62,6 +65,18 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+
+                // Handle validation errors
+                if (errorData.details && Array.isArray(errorData.details)) {
+                    const errors = {};
+                    errorData.details.forEach(err => {
+                        errors[err.field] = err.message;
+                    });
+                    setValidationErrors(errors);
+                    showError('Please fix the validation errors below');
+                    return;
+                }
+
                 throw new Error(errorData.error || `Failed to create quiz (${response.status})`);
             }
             const data = await response.json();
@@ -75,6 +90,7 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
 
     const handleAddQuestion = async (e) => {
         e.preventDefault();
+        setValidationErrors({}); // Clear previous errors
         try {
             const questionPayload = {
                 type: currentQuestion.type,
@@ -90,6 +106,18 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+
+                // Handle validation errors
+                if (errorData.details && Array.isArray(errorData.details)) {
+                    const errors = {};
+                    errorData.details.forEach(err => {
+                        errors[err.field] = err.message;
+                    });
+                    setValidationErrors(errors);
+                    showError('Please fix the validation errors below');
+                    return;
+                }
+
                 throw new Error(errorData.error || `Failed to add question (${response.status})`);
             }
 
@@ -277,34 +305,97 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                         <input
                             type="text"
                             value={quizData.title}
-                            onChange={e => setQuizData({ ...quizData, title: e.target.value })}
+                            onChange={e => {
+                                setQuizData({ ...quizData, title: e.target.value });
+                                if (validationErrors.title) {
+                                    setValidationErrors(prev => ({ ...prev, title: null }));
+                                }
+                            }}
                             placeholder="e.g., JavaScript Fundamentals"
                             required
-                            style={{ width: '100%' }}
+                            style={{
+                                width: '100%',
+                                borderColor: validationErrors.title ? '#ef4444' : undefined
+                            }}
                         />
+                        {validationErrors.title && (
+                            <div style={{
+                                color: '#ef4444',
+                                fontSize: '0.85rem',
+                                marginTop: '0.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>⚠️</span>
+                                <span>{validationErrors.title}</span>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Category</label>
                         <input
                             type="text"
                             value={quizData.category}
-                            onChange={e => setQuizData({ ...quizData, category: e.target.value })}
+                            onChange={e => {
+                                setQuizData({ ...quizData, category: e.target.value });
+                                if (validationErrors.category) {
+                                    setValidationErrors(prev => ({ ...prev, category: null }));
+                                }
+                            }}
                             placeholder="e.g., Programming, Science, History"
                             required
-                            style={{ width: '100%' }}
+                            style={{
+                                width: '100%',
+                                borderColor: validationErrors.category ? '#ef4444' : undefined
+                            }}
                         />
+                        {validationErrors.category && (
+                            <div style={{
+                                color: '#ef4444',
+                                fontSize: '0.85rem',
+                                marginTop: '0.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>⚠️</span>
+                                <span>{validationErrors.category}</span>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Difficulty</label>
                         <select
                             value={quizData.difficulty}
-                            onChange={e => setQuizData({ ...quizData, difficulty: e.target.value })}
-                            style={{ width: '100%' }}
+                            onChange={e => {
+                                setQuizData({ ...quizData, difficulty: e.target.value });
+                                if (validationErrors.difficulty) {
+                                    setValidationErrors(prev => ({ ...prev, difficulty: null }));
+                                }
+                            }}
+                            style={{
+                                width: '100%',
+                                borderColor: validationErrors.difficulty ? '#ef4444' : undefined
+                            }}
                         >
                             <option value="easy">Easy</option>
                             <option value="medium">Medium</option>
                             <option value="hard">Hard</option>
                         </select>
+                        {validationErrors.difficulty && (
+                            <div style={{
+                                color: '#ef4444',
+                                fontSize: '0.85rem',
+                                marginTop: '0.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                <span>⚠️</span>
+                                <span>{validationErrors.difficulty}</span>
+                            </div>
+                        )}
                     </div>
                     <button type="submit" style={{ width: '100%', padding: '1rem' }}>
                         Continue to Add Questions →
@@ -379,11 +470,32 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                             <input
                                 type="text"
                                 value={currentQuestion.text}
-                                onChange={e => setCurrentQuestion({ ...currentQuestion, text: e.target.value })}
+                                onChange={e => {
+                                    setCurrentQuestion({ ...currentQuestion, text: e.target.value });
+                                    if (validationErrors.text) {
+                                        setValidationErrors(prev => ({ ...prev, text: null }));
+                                    }
+                                }}
                                 placeholder="Enter your question..."
                                 required
-                                style={{ width: '100%' }}
+                                style={{
+                                    width: '100%',
+                                    borderColor: validationErrors.text ? '#ef4444' : undefined
+                                }}
                             />
+                            {validationErrors.text && (
+                                <div style={{
+                                    color: '#ef4444',
+                                    fontSize: '0.85rem',
+                                    marginTop: '0.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <span>⚠️</span>
+                                    <span>{validationErrors.text}</span>
+                                </div>
+                            )}
                         </div>
 
                         {currentQuestion.type === 'multiple_choice' && (
@@ -408,9 +520,17 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                             {currentQuestion.type === 'true_false' ? (
                                 <select
                                     value={currentQuestion.correctAnswer}
-                                    onChange={e => setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value })}
+                                    onChange={e => {
+                                        setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value });
+                                        if (validationErrors.correctAnswer) {
+                                            setValidationErrors(prev => ({ ...prev, correctAnswer: null }));
+                                        }
+                                    }}
                                     required
-                                    style={{ width: '100%' }}
+                                    style={{
+                                        width: '100%',
+                                        borderColor: validationErrors.correctAnswer ? '#ef4444' : undefined
+                                    }}
                                 >
                                     <option value="">Select Answer</option>
                                     <option value="true">True</option>
@@ -421,10 +541,31 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                                     type="text"
                                     placeholder="Enter the correct option text exactly"
                                     value={currentQuestion.correctAnswer}
-                                    onChange={e => setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value })}
+                                    onChange={e => {
+                                        setCurrentQuestion({ ...currentQuestion, correctAnswer: e.target.value });
+                                        if (validationErrors.correctAnswer) {
+                                            setValidationErrors(prev => ({ ...prev, correctAnswer: null }));
+                                        }
+                                    }}
                                     required
-                                    style={{ width: '100%' }}
+                                    style={{
+                                        width: '100%',
+                                        borderColor: validationErrors.correctAnswer ? '#ef4444' : undefined
+                                    }}
                                 />
+                            )}
+                            {validationErrors.correctAnswer && (
+                                <div style={{
+                                    color: '#ef4444',
+                                    fontSize: '0.85rem',
+                                    marginTop: '0.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <span>⚠️</span>
+                                    <span>{validationErrors.correctAnswer}</span>
+                                </div>
                             )}
                         </div>
 

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
+import TrendingQuizzes from './TrendingQuizzes';
+import TopCreators from './TopCreators';
 
 const QuizHub = ({ onBack }) => {
     const { fetchWithAuth } = useAuth();
@@ -239,11 +241,25 @@ const QuizHub = ({ onBack }) => {
                 </button>
             </div>
 
+            {/* Trending Quizzes Section */}
+            <div style={{ marginBottom: '2rem' }}>
+                <TrendingQuizzes />
+            </div>
+
+            {/* Top Creators Section */}
+            <div style={{ marginBottom: '2rem' }}>
+                <TopCreators onViewProfile={(userId) => {
+                    // Could navigate to user profile if implemented
+                    console.log('View profile:', userId);
+                }} />
+            </div>
+
             {/* Premium Search Bar */}
             <div style={{
                 marginBottom: '2rem',
                 position: 'relative'
             }}>
+                <h3 style={{ marginBottom: '1rem' }}>🔍 Browse All Quizzes</h3>
                 <div style={{
                     position: 'relative',
                     background: 'rgba(15, 23, 42, 0.5)',
