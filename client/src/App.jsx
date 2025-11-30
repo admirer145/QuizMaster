@@ -13,6 +13,7 @@ import QuizHub from './components/QuizHub';
 import AIGenerator from './components/AIGenerator';
 import QuizReview from './components/QuizReview';
 import UserProfile from './components/UserProfile';
+import PublicUserProfile from './components/PublicUserProfile';
 import Logo from './components/Logo';
 import LegalFooter from './components/LegalFooter';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -27,6 +28,7 @@ const AppContent = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
+  const [viewedUserId, setViewedUserId] = useState(null); // For viewing other users' profiles
 
   // Handle hash-based routing for legal documents
   React.useEffect(() => {
@@ -87,6 +89,11 @@ const AppContent = () => {
     if (quizId) setActiveQuizId(quizId);
     setActiveResultId(null);
     setView('attempts');
+  };
+
+  const viewUserProfile = (userId) => {
+    setViewedUserId(userId);
+    setView('public-profile');
   };
 
   return (
@@ -396,7 +403,7 @@ const AppContent = () => {
         />
       )}
       {view === 'game' && <QuizGame quizId={activeQuizId} onEndGame={endGame} onShowReport={showReport} />}
-      {view === 'leaderboard' && <Leaderboard onBack={backToMenu} />}
+      {view === 'leaderboard' && <Leaderboard onBack={backToMenu} onViewProfile={viewUserProfile} />}
       {view === 'report' && <QuizReport resultId={activeResultId} onBackToMenu={() => setView('home')} onBackToAttempts={backToAttempts} />}
       {view === 'attempts' && <QuizAttempts quizId={activeQuizId} userId={user.id} onViewReport={showReport} onBack={() => setView('home')} />}
 
@@ -445,6 +452,12 @@ const AppContent = () => {
       {view === 'profile' && (
         <UserProfile
           onBack={backToMenu}
+        />
+      )}
+      {view === 'public-profile' && viewedUserId && (
+        <PublicUserProfile
+          userId={viewedUserId}
+          onBack={() => setView('leaderboard')}
         />
       )}
 

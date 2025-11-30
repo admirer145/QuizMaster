@@ -64,6 +64,7 @@ router.get('/', authenticateToken, validateSearch, (req, res) => {
         let attemptCondition = '';
         let innerQuery = `
             SELECT 
+                u.id as user_id,
                 u.username, 
                 r.score, 
                 q.title as quizTitle, 
@@ -128,6 +129,7 @@ router.get('/', authenticateToken, validateSearch, (req, res) => {
 
         let firstQuery = `
             SELECT 
+                u.id as user_id,
                 u.username, 
                 r.score, 
                 q.title as quizTitle, 

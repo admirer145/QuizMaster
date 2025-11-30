@@ -10,7 +10,7 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
     const [quizData, setQuizData] = useState({
         title: '',
         category: '',
-        difficulty: 'Beginner'
+        difficulty: 'easy'
     });
     const [createdQuizId, setCreatedQuizId] = useState(null);
     const [currentQuestion, setCurrentQuestion] = useState({
@@ -301,10 +301,9 @@ const QuizCreator = ({ onBack, onCreated, editQuizId = null }) => {
                             onChange={e => setQuizData({ ...quizData, difficulty: e.target.value })}
                             style={{ width: '100%' }}
                         >
-                            <option value="Beginner">Beginner</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
-                            <option value="Expert">Expert</option>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
                         </select>
                     </div>
                     <button type="submit" style={{ width: '100%', padding: '1rem' }}>

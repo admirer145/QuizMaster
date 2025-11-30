@@ -384,8 +384,7 @@ const MyQuizzes = ({ onEdit, onCreate, onBack }) => {
                             opacity: (quiz.questionCount || 0) > 0 ? 1 : 0.6
                         }}
                     >
-                        🏠 Add to Home (Preview)
-                        {(quiz.questionCount || 0) === 0 && ' (No questions)'}
+                        🏠 Add to Home {(quiz.questionCount || 0) === 0 && '(No questions)'}
                     </button>
                 )}
 

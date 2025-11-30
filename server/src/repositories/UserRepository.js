@@ -55,6 +55,23 @@ class UserRepository {
     }
 
     /**
+     * Get public user data (excludes sensitive information)
+     * @param {number} userId 
+     * @returns {Promise<Object|null>}
+     */
+    async getPublicUserData(userId) {
+        const user = await User.findByPk(userId, {
+            attributes: ['id', 'username', 'level', 'xp', 'avatar_url', 'created_at']
+        });
+
+        if (!user) {
+            return null;
+        }
+
+        return user.toJSON();
+    }
+
+    /**
      * Delete user and all related data
      * @param {number} userId 
      * @returns {Promise<boolean>}

@@ -7,6 +7,29 @@ const cache = require('../utils/cache');
 
 const router = express.Router();
 
+// Get public user information
+router.get('/user/:userId', authenticateToken, async (req, res) => {
+    try {
+        const UserRepository = require('../repositories/UserRepository');
+        const userId = parseInt(req.params.userId);
+
+        const userData = await UserRepository.getPublicUserData(userId);
+
+        if (!userData) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(userData);
+    } catch (err) {
+        logger.error('Failed to fetch public user data', {
+            error: err,
+            context: { userId: req.params.userId },
+            requestId: req.requestId
+        });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Get user profile with comprehensive stats
 router.get('/stats/:userId', authenticateToken, async (req, res) => {
     try {

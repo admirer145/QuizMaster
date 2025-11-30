@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 import { formatDate } from '../utils/dateUtils';
 
-const Leaderboard = ({ onBack }) => {
+const Leaderboard = ({ onBack, onViewProfile }) => {
     const { fetchWithAuth } = useAuth();
     const [scores, setScores] = React.useState([]);
     const [filter, setFilter] = React.useState('first'); // 'first' or 'all'
@@ -238,7 +238,31 @@ const Leaderboard = ({ onBack }) => {
                                         {(page - 1) * 10 + idx + 1}
                                     </span>
                                 </td>
-                                <td style={{ padding: '1rem', textAlign: 'left', fontWeight: '500' }}>{entry.username}</td>
+                                <td
+                                    onClick={() => onViewProfile && onViewProfile(entry.user_id)}
+                                    style={{
+                                        padding: '1rem',
+                                        textAlign: 'left',
+                                        fontWeight: '500',
+                                        cursor: onViewProfile ? 'pointer' : 'default',
+                                        color: onViewProfile ? 'var(--primary)' : 'white',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (onViewProfile) {
+                                            e.currentTarget.style.textDecoration = 'underline';
+                                            e.currentTarget.style.color = '#818cf8';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (onViewProfile) {
+                                            e.currentTarget.style.textDecoration = 'none';
+                                            e.currentTarget.style.color = 'var(--primary)';
+                                        }
+                                    }}
+                                >
+                                    {entry.username}
+                                </td>
                                 <td style={{ padding: '1rem', textAlign: 'left' }}>{entry.quizTitle}</td>
                                 {filter === 'all' && (
                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
