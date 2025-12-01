@@ -233,6 +233,7 @@ class SocialRepository {
     async getTopCreators(limit = 10) {
         const creators = await User.findAll({
             attributes: {
+                exclude: ['password'], // Security: Never expose password
                 include: [
                     [
                         sequelize.literal(`(

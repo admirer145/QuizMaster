@@ -285,6 +285,20 @@ async function resetAndSeed() {
                 console.log(`    → Added ${quizData.questions.length} questions`);
             }
 
+            // Seed social stats for System user
+            console.log('\n📊 Seeding social stats...');
+            await new Promise((resolve, reject) => {
+                db.run(
+                    'INSERT INTO user_social_stats (user_id, quizzes_created_count) VALUES (?, ?)',
+                    [systemUserId, pythonQuizzes.length],
+                    function (err) {
+                        if (err) reject(err);
+                        else resolve(this.lastID);
+                    }
+                );
+            });
+            console.log(`✓ Updated social stats for System user (Quizzes: ${pythonQuizzes.length})`);
+
             console.log('\n✅ Database reset and seeding complete!');
             console.log('\n📊 Summary:');
             console.log(`   - System admin created (username: "System", password: "system123")`);

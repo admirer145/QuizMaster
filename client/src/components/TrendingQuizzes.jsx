@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
-import { LikeButton } from './SocialFeatures';
 
 const TrendingQuizzes = () => {
     const { fetchWithAuth } = useAuth();
@@ -60,19 +59,6 @@ const TrendingQuizzes = () => {
         }
     };
 
-    const checkIfLiked = async (quizId) => {
-        try {
-            const response = await fetchWithAuth(`${API_URL}/api/social/quizzes/${quizId}/has-liked`);
-            if (response.ok) {
-                const data = await response.json();
-                return data.hasLiked;
-            }
-        } catch (err) {
-            return false;
-        }
-        return false;
-    };
-
     if (loading) {
         return (
             <div className="glass-card">
@@ -105,7 +91,6 @@ const TrendingQuizzes = () => {
                         key={quiz.id}
                         quiz={quiz}
                         onAddToLibrary={handleAddToLibrary}
-                        checkIfLiked={checkIfLiked}
                         isAdded={addedQuizzes.has(quiz.id)}
                     />
                 ))}
@@ -114,13 +99,8 @@ const TrendingQuizzes = () => {
     );
 };
 
-const QuizCard = ({ quiz, onAddToLibrary, checkIfLiked, isAdded }) => {
-    const [hasLiked, setHasLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(parseInt(quiz.dataValues?.likesCount) || 0);
-
-    useEffect(() => {
-        checkIfLiked(quiz.id).then(setHasLiked);
-    }, [quiz.id, checkIfLiked]);
+const QuizCard = ({ quiz, onAddToLibrary, isAdded }) => {
+    const [likeCount] = useState(parseInt(quiz.likesCount) || 0);
 
     return (
         <div
@@ -211,7 +191,19 @@ const QuizCard = ({ quiz, onAddToLibrary, checkIfLiked, isAdded }) => {
                 fontSize: '0.9rem'
             }}>
                 <span>📝</span>
-                <span>{quiz.dataValues?.questionCount || 0} Questions</span>
+                <span>{quiz.questionCount || 0} Questions</span>
+            </div>
+
+            {/* Like Count (Read-only) */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--text-muted)',
+                fontSize: '0.9rem'
+            }}>
+                <span style={{ fontSize: '1.1rem' }}>❤️</span>
+                <span>{likeCount} {likeCount === 1 ? 'Like' : 'Likes'}</span>
             </div>
 
             {/* Action Buttons */}
@@ -221,12 +213,6 @@ const QuizCard = ({ quiz, onAddToLibrary, checkIfLiked, isAdded }) => {
                 marginTop: 'auto',
                 alignItems: 'center'
             }}>
-                <LikeButton
-                    quizId={quiz.id}
-                    initialLiked={hasLiked}
-                    initialCount={likeCount}
-                    onLikeChange={(liked, count) => setLikeCount(count)}
-                />
                 <button
                     onClick={() => onAddToLibrary(quiz.id)}
                     disabled={isAdded}

@@ -77,16 +77,29 @@ const TopCreators = ({ onViewProfile }) => {
 
 const CreatorCard = ({ creator, rank, onViewProfile, checkIfFollowing, isCurrentUser }) => {
     const [isFollowing, setIsFollowing] = useState(false);
+    const [localFollowersCount, setLocalFollowersCount] = useState(parseInt(creator.followersCount) || 0);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!isCurrentUser) {
-            checkIfFollowing(creator.id).then(setIsFollowing);
+            setLoading(true);
+            checkIfFollowing(creator.id).then((following) => {
+                setIsFollowing(following);
+                setLoading(false);
+            });
+        } else {
+            setLoading(false);
         }
     }, [creator.id, isCurrentUser]);
 
-    const quizzesCount = parseInt(creator.dataValues?.quizzesCount) || 0;
-    const followersCount = parseInt(creator.dataValues?.followersCount) || 0;
-    const totalLikes = parseInt(creator.dataValues?.totalLikes) || 0;
+    const handleFollowChange = (newFollowState) => {
+        setIsFollowing(newFollowState);
+        // Update local follower count optimistically
+        setLocalFollowersCount(prev => newFollowState ? prev + 1 : prev - 1);
+    };
+
+    const quizzesCount = parseInt(creator.quizzesCount) || 0;
+    const totalLikes = parseInt(creator.totalLikes) || 0;
 
     const getRankBadge = () => {
         const badges = {
@@ -152,7 +165,7 @@ const CreatorCard = ({ creator, rank, onViewProfile, checkIfFollowing, isCurrent
                     color: 'var(--text-muted)'
                 }}>
                     <span>📝 {quizzesCount} quizzes</span>
-                    <span>👥 {followersCount} followers</span>
+                    <span>👥 {localFollowersCount} followers</span>
                     <span>❤️ {totalLikes} likes</span>
                 </div>
             </div>
@@ -163,7 +176,7 @@ const CreatorCard = ({ creator, rank, onViewProfile, checkIfFollowing, isCurrent
                     <FollowButton
                         userId={creator.id}
                         initialFollowing={isFollowing}
-                        onFollowChange={setIsFollowing}
+                        onFollowChange={handleFollowChange}
                     />
                 </div>
             )}

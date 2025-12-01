@@ -33,7 +33,7 @@ class SocialService {
         // Invalidate caches
         cache.delete(`user_profile_${followerId}`);
         cache.delete(`user_profile_${followingId}`);
-        cache.delete('top_creators');
+        cache.deletePattern('top_creators*'); // Clear all top creator variations
 
         return result;
     }
@@ -57,7 +57,7 @@ class SocialService {
             // Invalidate caches
             cache.delete(`user_profile_${followerId}`);
             cache.delete(`user_profile_${followingId}`);
-            cache.delete('top_creators');
+            cache.deletePattern('top_creators*'); // Clear all top creator variations
         }
 
         return result;
@@ -89,10 +89,13 @@ class SocialService {
             cache.delete(`user_profile_${quiz.creator_id}`);
         }
 
-        // Invalidate caches
+        // Invalidate caches - clear all variations and related data
+        cache.delete(`quiz_${quizId}`); // Individual quiz cache
         cache.delete(`quiz_likes_${quizId}`);
-        cache.delete('trending_quizzes');
-        cache.delete('top_creators');
+        cache.delete('public_quizzes'); // Public quizzes list
+        cache.deletePattern('library_*'); // All user libraries (to update like counts)
+        cache.deletePattern('trending_quizzes*'); // All trending variations
+        cache.deletePattern('top_creators*'); // All top creator variations
 
         return result;
     }
@@ -114,10 +117,13 @@ class SocialService {
                 cache.delete(`user_profile_${quiz.creator_id}`);
             }
 
-            // Invalidate caches
+            // Invalidate caches - clear all variations and related data
+            cache.delete(`quiz_${quizId}`); // Individual quiz cache
             cache.delete(`quiz_likes_${quizId}`);
-            cache.delete('trending_quizzes');
-            cache.delete('top_creators');
+            cache.delete('public_quizzes'); // Public quizzes list
+            cache.deletePattern('library_*'); // All user libraries (to update like counts)
+            cache.deletePattern('trending_quizzes*'); // All trending variations
+            cache.deletePattern('top_creators*'); // All top creator variations
         }
 
         return result;
