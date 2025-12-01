@@ -162,11 +162,12 @@ const CreatorCard = ({ creator, rank, onViewProfile, checkIfFollowing, isCurrent
                     display: 'flex',
                     gap: '1rem',
                     fontSize: '0.75rem',
-                    color: 'var(--text-muted)'
+                    color: 'var(--text-muted)',
+                    flexWrap: 'wrap'
                 }}>
-                    <span>📝 {quizzesCount} quizzes</span>
-                    <span>👥 {localFollowersCount} followers</span>
-                    <span>❤️ {totalLikes} likes</span>
+                    <span title="Quizzes created by this user">📝 {quizzesCount} created</span>
+                    <span title="People following this user">👥 {localFollowersCount} followers</span>
+                    <span title="Total likes received on all quizzes">❤️ {totalLikes} likes</span>
                 </div>
             </div>
 

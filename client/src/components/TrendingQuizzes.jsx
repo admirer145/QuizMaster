@@ -13,6 +13,16 @@ const TrendingQuizzes = () => {
     useEffect(() => {
         fetchTrendingQuizzes();
         fetchUserLibrary();
+
+        // Listen for quiz added events from other components
+        const handleQuizAdded = (event) => {
+            setAddedQuizzes(prev => new Set([...prev, event.detail.quizId]));
+        };
+        window.addEventListener('quizAddedToLibrary', handleQuizAdded);
+
+        return () => {
+            window.removeEventListener('quizAddedToLibrary', handleQuizAdded);
+        };
     }, []);
 
     const fetchTrendingQuizzes = async () => {
@@ -54,6 +64,9 @@ const TrendingQuizzes = () => {
             }
             showSuccess('Quiz added to your home!');
             setAddedQuizzes(prev => new Set([...prev, quizId]));
+
+            // Dispatch event to notify other components
+            window.dispatchEvent(new CustomEvent('quizAddedToLibrary', { detail: { quizId } }));
         } catch (err) {
             showError(err.message);
         }

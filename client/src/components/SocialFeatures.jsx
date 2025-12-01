@@ -159,37 +159,61 @@ export const LikeButton = ({ quizId, initialLiked = false, initialCount = 0, onL
 // Social Stats Display Component
 export const SocialStats = ({ followers = 0, following = 0, quizzesCreated = 0, totalLikes = 0 }) => {
     const stats = [
-        { label: 'Followers', value: followers, icon: '👥' },
-        { label: 'Following', value: following, icon: '➕' },
-        { label: 'Quizzes', value: quizzesCreated, icon: '📝' },
-        { label: 'Total Likes', value: totalLikes, icon: '❤️' },
+        {
+            label: 'Followers',
+            value: followers,
+            icon: '👥',
+            tooltip: 'People following you'
+        },
+        {
+            label: 'Following',
+            value: following,
+            icon: '➕',
+            tooltip: 'People you follow'
+        },
+        {
+            label: 'Quizzes Created',
+            value: quizzesCreated,
+            icon: '📝',
+            tooltip: 'Total quizzes you\'ve created'
+        },
+        {
+            label: 'Likes Received',
+            value: totalLikes,
+            icon: '❤️',
+            tooltip: 'Total likes on all your quizzes'
+        },
     ];
 
     return (
         <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: '1rem',
             marginTop: '1.5rem'
         }}>
             {stats.map((stat, index) => (
                 <div
                     key={index}
+                    title={stat.tooltip}
                     style={{
                         background: 'rgba(255, 255, 255, 0.05)',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '12px',
                         padding: '1rem',
                         textAlign: 'center',
-                        transition: 'all 0.3s'
+                        transition: 'all 0.2s',
+                        cursor: 'help'
                     }}
                     onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
                         e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.2)';
                     }}
                     onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                         e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
                     }}
                 >
                     <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
@@ -204,10 +228,11 @@ export const SocialStats = ({ followers = 0, following = 0, quizzesCreated = 0, 
                         {stat.value}
                     </div>
                     <div style={{
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         color: 'var(--text-muted)',
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        lineHeight: '1.3'
                     }}>
                         {stat.label}
                     </div>
