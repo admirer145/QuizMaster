@@ -28,7 +28,6 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "@distube/ytdl-core": "^4.16.12",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -46,7 +45,7 @@
     "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",
     "xss-clean": "^0.1.4",
-    "youtube-transcript": "^1.2.1"
+    "youtubei.js": "^16.0.1"
   },
   "devDependencies": {
     "artillery": "^2.0.0",
