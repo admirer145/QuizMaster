@@ -174,8 +174,8 @@ class ChallengeService {
                 await ChallengeRepository.updateChallengeStats(winnerId, 'won');
                 await ChallengeRepository.updateChallengeStats(loserId, 'lost');
             } else {
-                // Draw - set completed_at but keep status as 'active'
-                await ChallengeRepository.updateChallengeStatus(challengeId, 'active', { completed_at: new Date().toISOString() });
+                // Draw - set status to completed
+                await ChallengeRepository.updateChallengeStatus(challengeId, 'completed', { completed_at: new Date().toISOString() });
                 await ChallengeRepository.updateChallengeStats(participant1.user_id, 'drawn');
                 await ChallengeRepository.updateChallengeStats(participant2.user_id, 'drawn');
             }

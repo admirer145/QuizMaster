@@ -24,6 +24,7 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     const [opponentJoined, setOpponentJoined] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
     const [countdown, setCountdown] = useState(null);
+    const [autoEndCountdown, setAutoEndCountdown] = useState(null);
 
     // Handle countdown timer
     useEffect(() => {
@@ -36,6 +37,16 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
             return () => clearTimeout(timer);
         }
     }, [countdown]);
+
+    // Handle auto-end countdown timer
+    useEffect(() => {
+        if (autoEndCountdown === null || autoEndCountdown <= 0) return;
+
+        const timer = setTimeout(() => {
+            setAutoEndCountdown(prev => prev - 1);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [autoEndCountdown]);
 
     const scoreRef = useRef(myScore);
     const socketRef = useRef(socket);
@@ -127,6 +138,8 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
             if (opponentId !== user.id) {
                 setOpponentFinished(true);
                 setOpponentScore(score);
+                // Start 15-second countdown
+                setAutoEndCountdown(15);
             }
         });
 
@@ -139,8 +152,8 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
         // Listen for force end
         newSocket.on('force_challenge_end', ({ reason, message }) => {
             if (!gameOver) {
+                // Force save result and end game
                 saveResult();
-                alert(message || 'Quiz ended because your opponent finished.');
             }
         });
 
@@ -195,20 +208,20 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     }, [gameOver, resultId, challengeId, quizStartTime, user.id]);
 
     const handleNextQuestion = () => {
-        setTimeLeft(30);
         setCurrentQuestionIndex(prev => {
             if (prev + 1 >= (quiz?.questions?.length || 0)) {
-                // Save result first, then mark as game over
+                // Last question - save result and don't reset timer
                 saveResult();
                 return prev;
             }
+            // Not the last question - reset timer and advance
+            setTimeLeft(30);
             return prev + 1;
         });
     };
 
     const saveResult = async () => {
         try {
-            const { Result, QuestionAttempt } = await import('../../../server/src/models/sequelize');
             const totalQuestions = quiz.questions.length;
             const maxScore = totalQuestions * 10;
             const actualPercentage = totalQuestions > 0 ? Math.round((scoreRef.current / maxScore) * 100) : 0;
@@ -227,7 +240,12 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                 const data = await response.json();
                 setResultId(data.resultId);
                 setGameOver(true);
-                setWaitingForOpponent(!opponentFinished);
+                // Don't set waitingForOpponent here - let challenge_finished event handle it
+                // If opponent already finished, we'll get challenge_finished immediately
+                // Otherwise, we'll wait for them
+                if (!opponentFinished) {
+                    setWaitingForOpponent(true);
+                }
             }
         } catch (err) {
             console.error('Failed to save result:', err);
@@ -323,7 +341,7 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                         </div>
                     </div>
                     <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
-                        They have 30 seconds to complete...
+                        They have 15 seconds to complete...
                     </p>
                 </div>
             );
@@ -478,9 +496,11 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                     <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#fb923c', marginBottom: '0.5rem' }}>
                         ⚠️ Opponent Has Finished!
                     </div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                        Quiz will auto-end in 30 seconds
-                    </div>
+                    {autoEndCountdown !== null && autoEndCountdown > 0 && (
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444', marginTop: '0.5rem' }}>
+                            Auto-ending in {autoEndCountdown}s
+                        </div>
+                    )}
                 </div>
             )}
 

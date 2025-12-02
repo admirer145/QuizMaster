@@ -142,25 +142,6 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
         }
     };
 
-    const handleRematch = async (challengeId) => {
-        try {
-            const response = await fetchWithAuth(`${API_URL}/api/challenges/${challengeId}/rematch`, {
-                method: 'POST'
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to create rematch');
-            }
-
-            showSuccess('Rematch challenge created!');
-            fetchChallenges();
-            setActiveTab('pending'); // Switch to pending tab to see new challenge
-        } catch (err) {
-            showError(err.message);
-        }
-    };
-
     const renderStats = () => {
         if (!stats) return null;
 

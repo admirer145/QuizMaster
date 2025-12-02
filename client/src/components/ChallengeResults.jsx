@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
 
-const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
+const ChallengeResults = ({ challengeId, onClose }) => {
     const { user, fetchWithAuth } = useAuth();
     const [challenge, setChallenge] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
 
     const fetchChallengeDetails = async () => {
         try {
-            const response = await fetchWithAuth(`${API_URL}/api/challenges/${challengeId}`);
+            const response = await fetchWithAuth(`${API_URL} /api/challenges / ${challengeId} `);
             if (!response.ok) throw new Error('Failed to fetch challenge details');
 
             const data = await response.json();
@@ -58,7 +58,7 @@ const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
     const opponentName = isCreator ? challenge.opponent_username : challenge.creator_username;
 
     const isWinner = challenge.winner_id === user.id;
-    const isDraw = !challenge.winner_id;
+    const isDraw = challenge.status === 'completed' && !challenge.winner_id;
 
     return (
         <div className="glass-card" style={{ maxWidth: '800px', width: '100%' }}>
@@ -104,9 +104,9 @@ const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
                             margin: 0
                         }}>
                             {isWinner
-                                ? `You defeated ${opponentName}!`
+                                ? `You defeated ${opponentName} !`
                                 : isDraw
-                                    ? `You tied with ${opponentName}!`
+                                    ? `You tied with ${opponentName} !`
                                     : `${opponentName} won this round!`
                             }
                         </p>
@@ -228,21 +228,6 @@ const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
                         </span>
                     </div>
 
-                    {/* Faster Player */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '1rem',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '8px'
-                    }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Faster Player</span>
-                        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                            {myTime < opponentTime ? '⚡ You' : `⚡ ${opponentName}`}
-                        </span>
-                    </div>
-
                     {/* Quiz Info */}
                     <div style={{
                         display: 'flex',
@@ -277,37 +262,21 @@ const ChallengeResults = ({ challengeId, onClose, onRematch }) => {
                 >
                     ← Back to Challenges
                 </button>
-                <button
-                    onClick={() => onRematch(challenge.quiz_id, opponentName)}
-                    style={{
-                        flex: 1,
-                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                        border: 'none',
-                        color: 'white',
-                        padding: '0.75rem',
-                        fontSize: '1rem',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                        fontWeight: '600'
-                    }}
-                >
-                    🔄 Rematch!
-                </button>
             </div>
 
             {/* Confetti Animation for Winners */}
             {isWinner && showWinner && (
                 <style>{`
-          @keyframes bounceIn {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-          }
-          @keyframes fadeIn {
+@keyframes bounceIn {
+    0 % { transform: scale(0); opacity: 0; }
+    50 % { transform: scale(1.1); }
+    100 % { transform: scale(1); opacity: 1; }
+}
+@keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
+}
+`}</style>
             )}
         </div>
     );

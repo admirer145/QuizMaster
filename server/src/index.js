@@ -415,7 +415,7 @@ io.on('connection', (socket) => {
                 });
             } else {
                 // Only one player finished - set a timeout to auto-end for opponent
-                // Give opponent 30 seconds to finish, then force end
+                // Give opponent 15 seconds to finish, then force end
                 setTimeout(async () => {
                     try {
                         const recheckResult = await ChallengeService.processChallengeCompletion(challengeId);
@@ -432,7 +432,7 @@ io.on('connection', (socket) => {
                     } catch (err) {
                         logger.error('Failed to force end challenge', { error: err, challengeId });
                     }
-                }, 30000); // 30 seconds
+                }, 15000); // 15 seconds
             }
         } catch (err) {
             logger.error('Failed to process challenge completion', {
