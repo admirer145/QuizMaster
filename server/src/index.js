@@ -316,6 +316,13 @@ io.on('connection', (socket) => {
                 resultId
             );
 
+            logger.info('User completed challenge', {
+                challengeId,
+                userId,
+                finalScore,
+                totalTime
+            });
+
             // Notify opponent that player finished
             socket.to(`challenge_${challengeId}`).emit('opponent_finished', {
                 userId,
@@ -339,6 +346,26 @@ io.on('connection', (socket) => {
                     winnerId: completionResult.winnerId,
                     result: completionResult.result
                 });
+            } else {
+                // Only one player finished - set a timeout to auto-end for opponent
+                // Give opponent 2 minutes to finish, then force end
+                setTimeout(async () => {
+                    try {
+                        const recheckResult = await ChallengeService.processChallengeCompletion(challengeId);
+                        if (!recheckResult.completed) {
+                            // Opponent still hasn't finished - force end
+                            logger.info('Force ending challenge due to timeout', { challengeId });
+
+                            // Notify opponent to force end
+                            io.to(`challenge_${challengeId}`).emit('force_challenge_end', {
+                                reason: 'opponent_finished_timeout',
+                                message: 'Your opponent has finished. Quiz will end now.'
+                            });
+                        }
+                    } catch (err) {
+                        logger.error('Failed to force end challenge', { error: err, challengeId });
+                    }
+                }, 120000); // 2 minutes
             }
         } catch (err) {
             logger.error('Failed to process challenge completion', {

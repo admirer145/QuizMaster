@@ -96,6 +96,25 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
         }
     };
 
+    const handleRematch = async (challengeId) => {
+        try {
+            const response = await fetchWithAuth(`${API_URL}/api/challenges/${challengeId}/rematch`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to create rematch');
+            }
+
+            showSuccess('Rematch challenge created!');
+            fetchChallenges();
+            setActiveTab('pending'); // Switch to pending tab to see new challenge
+        } catch (err) {
+            showError(err.message);
+        }
+    };
+
     const renderStats = () => {
         if (!stats) return null;
 
@@ -386,22 +405,40 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
                     )}
 
                     {isCompleted && (
-                        <button
-                            onClick={() => onViewResults(challenge.id)}
-                            style={{
-                                flex: 1,
-                                background: 'rgba(99, 102, 241, 0.2)',
-                                border: '1px solid rgba(99, 102, 241, 0.3)',
-                                color: '#a5b4fc',
-                                padding: '0.75rem',
-                                fontSize: '0.95rem',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                fontWeight: '600'
-                            }}
-                        >
-                            📊 View Details
-                        </button>
+                        <>
+                            <button
+                                onClick={() => onViewResults(challenge.id)}
+                                style={{
+                                    flex: 1,
+                                    background: 'rgba(99, 102, 241, 0.2)',
+                                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                                    color: '#a5b4fc',
+                                    padding: '0.75rem',
+                                    fontSize: '0.95rem',
+                                    cursor: 'pointer',
+                                    borderRadius: '8px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                📊 View Details
+                            </button>
+                            <button
+                                onClick={() => handleRematch(challenge.id)}
+                                style={{
+                                    flex: 1,
+                                    background: 'rgba(168, 85, 247, 0.2)',
+                                    border: '1px solid rgba(168, 85, 247, 0.3)',
+                                    color: '#c084fc',
+                                    padding: '0.75rem',
+                                    fontSize: '0.95rem',
+                                    cursor: 'pointer',
+                                    borderRadius: '8px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                🔄 Rematch
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

@@ -216,6 +216,66 @@ router.delete('/:id/cancel', authenticateToken, async (req, res) => {
     }
 });
 
+// Create a rematch challenge
+router.post('/:id/rematch', authenticateToken, async (req, res) => {
+    try {
+        const originalChallengeId = req.params.id;
+        const userId = req.user.id;
+
+        const originalChallenge = await ChallengeRepository.getChallengeById(originalChallengeId);
+
+        if (!originalChallenge) {
+            return res.status(404).json({ error: 'Original challenge not found' });
+        }
+
+        // Verify user is part of this challenge
+        if (originalChallenge.creator_id !== userId && originalChallenge.opponent_id !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        // Verify original challenge is completed
+        if (originalChallenge.status !== 'completed') {
+            return res.status(400).json({ error: 'Can only rematch completed challenges' });
+        }
+
+        // Determine who is the opponent
+        const opponentId = originalChallenge.creator_id === userId
+            ? originalChallenge.opponent_id
+            : originalChallenge.creator_id;
+
+        // Create new challenge (user becomes creator, opponent stays same)
+        const challengeId = await ChallengeRepository.createRematch(
+            originalChallenge.quiz_id,
+            userId,
+            opponentId,
+            originalChallengeId
+        );
+
+        logger.info('Rematch challenge created', {
+            challengeId,
+            originalChallengeId,
+            creatorId: userId,
+            opponentId,
+            requestId: req.requestId
+        });
+
+        // Get full challenge details
+        const challenge = await ChallengeRepository.getChallengeById(challengeId);
+
+        res.status(201).json({
+            message: 'Rematch challenge created successfully',
+            challenge
+        });
+    } catch (err) {
+        logger.error('Failed to create rematch', {
+            error: err,
+            context: { challengeId: req.params.id, userId: req.user.id },
+            requestId: req.requestId
+        });
+        res.status(400).json({ error: err.message });
+    }
+});
+
 // Get challenge stats for user
 router.get('/stats/:userId', authenticateToken, async (req, res) => {
     try {

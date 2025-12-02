@@ -216,6 +216,18 @@ function initializeSchema() {
       });
     });
 
+    // Add rematch fields to challenges table
+    const challengeRematchColumns = [
+      "ALTER TABLE challenges ADD COLUMN parent_challenge_id INTEGER REFERENCES challenges(id)",
+      "ALTER TABLE challenges ADD COLUMN is_rematch BOOLEAN DEFAULT 0"
+    ];
+
+    challengeRematchColumns.forEach(query => {
+      db.run(query, (err) => {
+        // Ignore errors if column already exists
+      });
+    });
+
     // Create indexes for performance optimization
     const indexes = [
       // Foreign key indexes

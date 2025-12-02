@@ -18,8 +18,25 @@ class ChallengeService {
             throw new Error('Quiz must have at least one question');
         }
 
-        // Get opponent by username
         const db = require('../db');
+
+        // Check if creator has already completed this quiz
+        const creatorResult = await new Promise((resolve, reject) => {
+            db.get(
+                'SELECT id FROM results WHERE user_id = ? AND quiz_id = ? LIMIT 1',
+                [creatorId, quizId],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                }
+            );
+        });
+
+        if (creatorResult) {
+            throw new Error('You cannot create a challenge for a quiz you have already completed');
+        }
+
+        // Get opponent by username
         const opponent = await new Promise((resolve, reject) => {
             db.get('SELECT id, username FROM users WHERE username = ?', [opponentUsername], (err, row) => {
                 if (err) reject(err);
@@ -35,6 +52,26 @@ class ChallengeService {
             throw new Error('You cannot challenge yourself');
         }
 
+        // Check for existing active challenge with same quiz and opponent
+        const existingChallenge = await new Promise((resolve, reject) => {
+            db.get(
+                `SELECT id FROM challenges 
+                 WHERE quiz_id = ? 
+                 AND ((creator_id = ? AND opponent_id = ?) OR (creator_id = ? AND opponent_id = ?))
+                 AND status IN ('pending', 'active')
+                 LIMIT 1`,
+                [quizId, creatorId, opponent.id, opponent.id, creatorId],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                }
+            );
+        });
+
+        if (existingChallenge) {
+            throw new Error('An active challenge already exists for this quiz with this opponent');
+        }
+
         return { quiz, opponent };
     }
 
@@ -42,22 +79,70 @@ class ChallengeService {
      * Determine winner based on scores and time
      */
     static determineWinner(participant1, participant2) {
+        logger.debug('Determining challenge winner', {
+            participant1: {
+                userId: participant1.user_id,
+                username: participant1.username,
+                score: participant1.score,
+                time: participant1.total_time_seconds
+            },
+            participant2: {
+                userId: participant2.user_id,
+                username: participant2.username,
+                score: participant2.score,
+                time: participant2.total_time_seconds
+            }
+        });
+
+        const score1 = participant1.score || 0;
+        const score2 = participant2.score || 0;
+        const time1 = participant1.total_time_seconds || 0;
+        const time2 = participant2.total_time_seconds || 0;
+
         // Higher score wins
-        if (participant1.score > participant2.score) {
-            return { winnerId: participant1.user_id, result: 'won' };
-        } else if (participant2.score > participant1.score) {
-            return { winnerId: participant2.user_id, result: 'won' };
+        if (score1 > score2) {
+            logger.info('Winner determined by score', {
+                winnerId: participant1.user_id,
+                winnerScore: score1,
+                loserScore: score2
+            });
+            return { winnerId: participant1.user_id, result: 'won', reason: 'higher_score' };
+        } else if (score2 > score1) {
+            logger.info('Winner determined by score', {
+                winnerId: participant2.user_id,
+                winnerScore: score2,
+                loserScore: score1
+            });
+            return { winnerId: participant2.user_id, result: 'won', reason: 'higher_score' };
         }
 
-        // If scores are equal, faster time wins
-        if (participant1.total_time_seconds < participant2.total_time_seconds) {
-            return { winnerId: participant1.user_id, result: 'won' };
-        } else if (participant2.total_time_seconds < participant1.total_time_seconds) {
-            return { winnerId: participant2.user_id, result: 'won' };
+        // Scores are equal - check time as tiebreaker
+        // Lower time (faster) wins
+        if (time1 < time2 && time1 > 0) {
+            logger.info('Winner determined by time (tiebreaker)', {
+                winnerId: participant1.user_id,
+                winnerTime: time1,
+                loserTime: time2,
+                equalScore: score1
+            });
+            return { winnerId: participant1.user_id, result: 'won', reason: 'faster_time' };
+        } else if (time2 < time1 && time2 > 0) {
+            logger.info('Winner determined by time (tiebreaker)', {
+                winnerId: participant2.user_id,
+                winnerTime: time2,
+                loserTime: time1,
+                equalScore: score2
+            });
+            return { winnerId: participant2.user_id, result: 'won', reason: 'faster_time' };
         }
 
-        // Perfect tie - both same score and time
-        return { winnerId: null, result: 'drawn' };
+        // Perfect tie - both same score and time (or both have 0 time)
+        logger.info('Challenge resulted in a draw', {
+            score: score1,
+            time1,
+            time2
+        });
+        return { winnerId: null, result: 'drawn', reason: 'perfect_tie' };
     }
 
     /**

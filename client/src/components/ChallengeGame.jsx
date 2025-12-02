@@ -58,6 +58,14 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     useEffect(() => {
         if (!quiz || !challenge) return;
 
+        // Reset scores when starting a new challenge
+        setMyScore(0);
+        setOpponentScore(0);
+        setCurrentQuestionIndex(0);
+        setGameOver(false);
+        setOpponentFinished(false);
+        setWaitingForOpponent(false);
+
         const newSocket = io(API_URL);
         setSocket(newSocket);
 
@@ -84,6 +92,15 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
         newSocket.on('challenge_finished', ({ winnerId, result, participants }) => {
             setGameOver(true);
             setWaitingForOpponent(false);
+        });
+
+        // Listen for force end (when opponent finishes and timeout expires)
+        newSocket.on('force_challenge_end', ({ reason, message }) => {
+            if (!gameOver) {
+                // Save current progress and end quiz
+                saveResult();
+                alert(message || 'Quiz ended because your opponent finished.');
+            }
         });
 
         // Listen for answer results

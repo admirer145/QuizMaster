@@ -40,6 +40,43 @@ class ChallengeRepository {
     }
 
     /**
+     * Create a rematch challenge
+     */
+    static async createRematch(quizId, creatorId, opponentId, parentChallengeId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+        INSERT INTO challenges (quiz_id, creator_id, opponent_id, status, parent_challenge_id, is_rematch)
+        VALUES (?, ?, ?, 'pending', ?, 1)
+      `;
+
+            db.run(query, [quizId, creatorId, opponentId, parentChallengeId], function (err) {
+                if (err) {
+                    logger.error('Failed to create rematch challenge', { error: err, quizId, creatorId, opponentId, parentChallengeId });
+                    return reject(err);
+                }
+
+                const challengeId = this.lastID;
+
+                // Create participant records for both users
+                const participantQuery = `
+          INSERT INTO challenge_participants (challenge_id, user_id)
+          VALUES (?, ?), (?, ?)
+        `;
+
+                db.run(participantQuery, [challengeId, creatorId, challengeId, opponentId], (err) => {
+                    if (err) {
+                        logger.error('Failed to create rematch challenge participants', { error: err, challengeId });
+                        return reject(err);
+                    }
+
+                    logger.info('Rematch challenge created successfully', { challengeId, parentChallengeId, quizId, creatorId, opponentId });
+                    resolve(challengeId);
+                });
+            });
+        });
+    }
+
+    /**
      * Get challenge by ID with full details
      */
     static async getChallengeById(challengeId) {
