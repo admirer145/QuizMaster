@@ -202,6 +202,21 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
                 </div>
 
                 <div style={{
+                    background: 'linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(71, 85, 105, 0.1))',
+                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#64748b' }}>
+                        {stats.challenges_drawn}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        Draws
+                    </div>
+                </div>
+
+                <div style={{
                     background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(249, 115, 22, 0.1))',
                     border: '1px solid rgba(251, 146, 60, 0.3)',
                     borderRadius: '12px',
@@ -448,22 +463,6 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
                                 }}
                             >
                                 📊 View Details
-                            </button>
-                            <button
-                                onClick={() => handleRematch(challenge.id)}
-                                style={{
-                                    flex: 1,
-                                    background: 'rgba(168, 85, 247, 0.2)',
-                                    border: '1px solid rgba(168, 85, 247, 0.3)',
-                                    color: '#c084fc',
-                                    padding: '0.75rem',
-                                    fontSize: '0.95rem',
-                                    cursor: 'pointer',
-                                    borderRadius: '8px',
-                                    fontWeight: '600'
-                                }}
-                            >
-                                🔄 Rematch
                             </button>
                         </>
                     )}

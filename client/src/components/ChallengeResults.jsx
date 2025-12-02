@@ -21,7 +21,7 @@ const ChallengeResults = ({ challengeId, onClose }) => {
 
     const fetchChallengeDetails = async () => {
         try {
-            const response = await fetchWithAuth(`${API_URL} /api/challenges / ${challengeId} `);
+            const response = await fetchWithAuth(`${API_URL}/api/challenges/${challengeId}`);
             if (!response.ok) throw new Error('Failed to fetch challenge details');
 
             const data = await response.json();

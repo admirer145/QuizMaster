@@ -115,12 +115,6 @@ const AppContent = () => {
     setView('challenge-results');
   };
 
-  const handleRematch = (quizId, opponentUsername) => {
-    setView('challenges');
-    setShowChallengeCreator(true);
-    // The creator modal will handle the rematch
-  };
-
   return (
     <div className="container">
       <style>
@@ -542,7 +536,6 @@ const AppContent = () => {
         <ChallengeResults
           challengeId={activeChallengeId}
           onClose={() => setView('challenges')}
-          onRematch={handleRematch}
         />
       )}
 
