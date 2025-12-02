@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import API_URL from '../config';
@@ -15,7 +16,20 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
     useEffect(() => {
         fetchChallenges();
         fetchStats();
-    }, [activeTab]);
+
+        // Listen for challenge declined notifications
+        const socket = io(API_URL);
+        socket.on('challenge_declined', ({ creatorId, opponentUsername, quizTitle }) => {
+            if (creatorId === user.id) {
+                showError(`${opponentUsername} declined your challenge for "${quizTitle}"`);
+                fetchChallenges(); // Refresh the list
+            }
+        });
+
+        return () => {
+            socket.close();
+        };
+    }, [activeTab, user.id]); // Added user.id to refresh on mount
 
     const fetchChallenges = async () => {
         try {
@@ -30,7 +44,11 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
             if (!response.ok) throw new Error('Failed to fetch challenges');
 
             const data = await response.json();
-            setChallenges(data.challenges || []);
+            // Filter out declined and cancelled challenges on frontend as well
+            const filteredChallenges = (data.challenges || []).filter(
+                c => c.status !== 'declined' && c.status !== 'cancelled'
+            );
+            setChallenges(filteredChallenges);
         } catch (err) {
             showError(err.message);
         } finally {

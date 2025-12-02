@@ -132,7 +132,20 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
         // Update status to active
         await ChallengeRepository.updateChallengeStatus(challengeId, 'active');
 
-        logger.info('Challenge accepted', {
+        // Reset participant scores to 0 for a fresh start
+        const db = require('../db');
+        await new Promise((resolve, reject) => {
+            db.run(
+                'UPDATE challenge_participants SET score = 0, total_time_seconds = 0, completed = 0, completed_at = NULL WHERE challenge_id = ?',
+                [challengeId],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+
+        logger.info('Challenge accepted and scores reset', {
             challengeId,
             userId,
             requestId: req.requestId
@@ -171,14 +184,41 @@ router.post('/:id/decline', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Challenge is not pending' });
         }
 
-        // Update status to declined
-        await ChallengeRepository.updateChallengeStatus(challengeId, 'declined');
+        // Delete the challenge instead of marking as declined
+        // First delete participants
+        const db = require('../db');
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM challenge_participants WHERE challenge_id = ?', [challengeId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
 
-        logger.info('Challenge declined', {
+        // Then delete challenge
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM challenges WHERE id = ?', [challengeId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        logger.info('Challenge declined and deleted', {
             challengeId,
             userId,
+            creatorId: challenge.creator_id,
             requestId: req.requestId
         });
+
+        // Notify creator via socket that challenge was declined
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('challenge_declined', {
+                challengeId,
+                creatorId: challenge.creator_id,
+                opponentUsername: challenge.opponent_username,
+                quizTitle: challenge.quiz_title
+            });
+        }
 
         res.json({ message: 'Challenge declined' });
     } catch (err) {

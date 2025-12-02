@@ -225,6 +225,9 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                             Your Score: {myScore}
                         </div>
                     </div>
+                    <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
+                        They have 30 seconds to complete...
+                    </p>
                 </div>
             );
         }
@@ -361,6 +364,26 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                     fontWeight: '600'
                 }}>
                     ⚡ Opponent is ahead!
+                </div>
+            )}
+
+            {/* Opponent Finished Notification */}
+            {opponentFinished && !gameOver && (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '1rem',
+                    background: 'rgba(251, 146, 60, 0.2)',
+                    border: '2px solid rgba(251, 146, 60, 0.5)',
+                    borderRadius: '12px',
+                    marginBottom: '1.5rem',
+                    animation: 'pulse 2s infinite'
+                }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#fb923c', marginBottom: '0.5rem' }}>
+                        ⚠️ Opponent Has Finished!
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                        Quiz will auto-end in 30 seconds
+                    </div>
                 </div>
             )}
 

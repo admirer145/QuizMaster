@@ -94,6 +94,9 @@ app.use('/api/legal', require('./routes/legal'));
 app.use('/api/social', require('./routes/social'));
 app.use('/api/challenges', require('./routes/challenges'));
 
+// Make io available to routes
+app.set('io', io);
+
 
 // Socket.io Logic
 io.on('connection', (socket) => {
@@ -348,7 +351,7 @@ io.on('connection', (socket) => {
                 });
             } else {
                 // Only one player finished - set a timeout to auto-end for opponent
-                // Give opponent 2 minutes to finish, then force end
+                // Give opponent 30 seconds to finish, then force end
                 setTimeout(async () => {
                     try {
                         const recheckResult = await ChallengeService.processChallengeCompletion(challengeId);
@@ -365,7 +368,7 @@ io.on('connection', (socket) => {
                     } catch (err) {
                         logger.error('Failed to force end challenge', { error: err, challengeId });
                     }
-                }, 120000); // 2 minutes
+                }, 30000); // 30 seconds
             }
         } catch (err) {
             logger.error('Failed to process challenge completion', {

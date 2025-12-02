@@ -522,6 +522,7 @@ const AppContent = () => {
               onClose={() => setShowChallengeCreator(false)}
               onChallengeCreated={() => {
                 setShowChallengeCreator(false);
+                // Switch to challenges view and pending tab to show new challenge
                 setView('challenges');
               }}
             />

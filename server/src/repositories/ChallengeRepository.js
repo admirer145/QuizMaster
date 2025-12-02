@@ -129,14 +129,8 @@ class ChallengeRepository {
           q.title as quiz_title,
           q.category as quiz_category,
           q.difficulty as quiz_difficulty,
-          CASE 
-            WHEN c.creator_id = ? THEN opponent.username
-            ELSE creator.username
-          END as opponent_username,
-          CASE 
-            WHEN c.creator_id = ? THEN c.opponent_id
-            ELSE c.creator_id
-          END as opponent_id,
+          creator.username as creator_username,
+          opponent.username as opponent_username,
           cp_user.score as my_score,
           cp_user.completed as my_completed,
           cp_opponent.score as opponent_score,
@@ -150,12 +144,16 @@ class ChallengeRepository {
         WHERE (c.creator_id = ? OR c.opponent_id = ?)
       `;
 
-            const params = [userId, userId, userId, userId, userId, userId];
+            const params = [userId, userId, userId, userId];
+
 
             // Apply status filter
             if (filters.status) {
                 query += ` AND c.status = ?`;
                 params.push(filters.status);
+            } else {
+                // By default, exclude declined and cancelled challenges
+                query += ` AND c.status NOT IN ('declined', 'cancelled')`;
             }
 
             // Apply type filter (sent/received)
