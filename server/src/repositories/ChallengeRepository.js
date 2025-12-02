@@ -262,12 +262,13 @@ class ChallengeRepository {
 
     /**
      * Set challenge winner
+     * Note: Does not change status to 'completed' - challenges remain 'active' until manually completed
      */
     static async setWinner(challengeId, winnerId) {
         return new Promise((resolve, reject) => {
             const query = `
         UPDATE challenges 
-        SET winner_id = ?, status = 'completed', completed_at = CURRENT_TIMESTAMP
+        SET winner_id = ?, completed_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
 

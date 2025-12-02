@@ -20,6 +20,22 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     const [opponentFinished, setOpponentFinished] = useState(false);
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [resultId, setResultId] = useState(null);
+    const [waitingInLobby, setWaitingInLobby] = useState(true);
+    const [opponentJoined, setOpponentJoined] = useState(false);
+    const [gameStarted, setGameStarted] = useState(false);
+    const [countdown, setCountdown] = useState(null);
+
+    // Handle countdown timer
+    useEffect(() => {
+        if (countdown === null) return;
+
+        if (countdown > 0) {
+            const timer = setTimeout(() => {
+                setCountdown(prev => prev - 1);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [countdown]);
 
     const scoreRef = useRef(myScore);
     const socketRef = useRef(socket);
@@ -69,8 +85,33 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
         const newSocket = io(API_URL);
         setSocket(newSocket);
 
-        // Join challenge room
-        newSocket.emit('join_challenge', { userId: user.id, challengeId });
+        // Register listeners BEFORE joining to ensure we don't miss events
+
+        // Listen for opponent joining
+        newSocket.on('opponent_joined', ({ userId: opponentId }) => {
+            if (opponentId !== user.id) {
+                setOpponentJoined(true);
+            }
+        });
+
+        // Listen for both players ready signal
+        newSocket.on('both_players_ready', () => {
+            console.log('Received both_players_ready event');
+            setOpponentJoined(true);
+            setCountdown(3);
+        });
+
+        // Listen for game start signal
+        newSocket.on('challenge_start', () => {
+            console.log('Received challenge_start event');
+            setWaitingInLobby(false);
+            setGameStarted(true);
+        });
+
+        // Listen for waiting status
+        newSocket.on('waiting_for_opponent', () => {
+            setOpponentJoined(false);
+        });
 
         // Listen for opponent progress
         newSocket.on('opponent_progress', ({ userId: opponentId, currentQuestion, score, isCorrect }) => {
@@ -94,10 +135,9 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
             setWaitingForOpponent(false);
         });
 
-        // Listen for force end (when opponent finishes and timeout expires)
+        // Listen for force end
         newSocket.on('force_challenge_end', ({ reason, message }) => {
             if (!gameOver) {
-                // Save current progress and end quiz
                 saveResult();
                 alert(message || 'Quiz ended because your opponent finished.');
             }
@@ -112,6 +152,11 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
                 handleNextQuestion();
             }, 2000);
         });
+
+        // Join challenge room and notify about joining
+        newSocket.emit('join_challenge', { userId: user.id, challengeId, username: user.username });
+
+
 
         return () => {
             newSocket.emit('leave_challenge', { challengeId });
@@ -209,6 +254,57 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
         return (
             <div className="glass-card">
                 <h2>Loading Challenge...</h2>
+            </div>
+        );
+    }
+
+    // Waiting lobby - show while waiting for opponent to join
+    if (waitingInLobby) {
+        return (
+            <div className="glass-card" style={{ textAlign: 'center', maxWidth: '600px', width: '100%' }}>
+                <h2>🎮 Challenge Lobby</h2>
+                <div style={{ fontSize: '4rem', margin: '2rem 0', animation: 'pulse 2s infinite' }}>
+                    {opponentJoined ? '✅' : '⏳'}
+                </div>
+                <h3 style={{ marginBottom: '1rem' }}>
+                    {opponentJoined ? 'Both Players Ready!' : 'Waiting for opponent to join...'}
+                </h3>
+                <div style={{
+                    padding: '1.5rem',
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    borderRadius: '12px',
+                    marginTop: '2rem'
+                }}>
+                    <div style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                        Challenge: <strong style={{ color: 'white' }}>{quiz.title}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                        Opponent: <strong style={{ color: 'white' }}>
+                            {challenge.creator_id === user.id ? challenge.opponent_username : challenge.creator_username}
+                        </strong>
+                    </div>
+                </div>
+                {opponentJoined && (
+                    <div style={{
+                        marginTop: '2rem',
+                        padding: '1.5rem',
+                        background: countdown ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '12px',
+                        color: '#22c55e',
+                        fontWeight: '600'
+                    }}>
+                        {countdown ? (
+                            <div style={{ fontSize: '3rem', animation: 'pulse 0.5s infinite' }}>
+                                {countdown}
+                            </div>
+                        ) : (
+                            <div style={{ animation: 'pulse 1s infinite' }}>
+                                🚀 Starting quiz...
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }

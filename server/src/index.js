@@ -233,18 +233,99 @@ io.on('connection', (socket) => {
     const ChallengeRepository = require('./repositories/ChallengeRepository');
     const ChallengeService = require('./services/challengeService');
 
-    socket.on('join_challenge', async ({ userId, challengeId }) => {
+    // Track players in each challenge room
+    const challengeRooms = new Map(); // challengeId -> Set of userIds
+    // Track socket to user/challenge mapping for cleanup
+    const socketMap = new Map(); // socketId -> { userId, challengeId }
+
+    socket.on('join_challenge', async ({ userId, challengeId, username }) => {
         try {
-            socket.join(`challenge_${challengeId}`);
+            const roomId = `challenge_${challengeId}`;
+            await socket.join(roomId);
+
+            // Normalize challengeId to string for consistent Map keys
+            const challengeKey = String(challengeId);
+
+            // Track this player in the challenge room
+            if (!challengeRooms.has(challengeKey)) {
+                challengeRooms.set(challengeKey, new Set());
+            }
+            challengeRooms.get(challengeKey).add(userId);
+
+            // Map socket to user for cleanup
+            socketMap.set(socket.id, { userId, challengeId: challengeKey });
+
+            const playersInRoom = challengeRooms.get(challengeKey);
+            logger.info('User joined challenge', {
+                userId,
+                challengeId: challengeKey,
+                socketId: socket.id,
+                playerCount: playersInRoom.size,
+                players: Array.from(playersInRoom)
+            });
 
             // Notify opponent that player joined
-            socket.to(`challenge_${challengeId}`).emit('opponent_joined', { userId });
+            socket.to(roomId).emit('opponent_joined', { userId, username });
 
-            logger.info('User joined challenge', { userId, challengeId, socketId: socket.id });
+            // Check if both players have joined
+            if (playersInRoom.size >= 2) {
+                logger.info('Both players ready, starting countdown', { challengeId: challengeKey });
+
+                // Wait a moment to ensure connection stability
+                setTimeout(async () => {
+                    try {
+                        // Get all sockets in the room to ensure we reach everyone
+                        const sockets = await io.in(roomId).fetchSockets();
+                        logger.info('Broadcasting to sockets', { count: sockets.length, ids: sockets.map(s => s.id) });
+
+                        // Emit to each socket explicitly to be safe
+                        for (const s of sockets) {
+                            s.emit('both_players_ready');
+                        }
+
+                        // Also emit to room as fallback
+                        io.to(roomId).emit('both_players_ready');
+
+                        // Start the game after 3 seconds
+                        setTimeout(() => {
+                            io.to(roomId).emit('challenge_start');
+                            logger.info('Emitted challenge_start to room', { roomId, challengeId: challengeKey });
+                        }, 3000);
+                    } catch (e) {
+                        logger.error('Error broadcasting ready state', { error: e });
+                        // Fallback
+                        io.to(roomId).emit('both_players_ready');
+                    }
+                }, 500);
+            } else {
+                // Tell the user they are waiting
+                socket.emit('waiting_for_opponent');
+            }
         } catch (err) {
             logger.error('Failed to join challenge', { error: err, userId, challengeId });
         }
     });
+
+    const handleLeave = (socketId) => {
+        if (socketMap.has(socketId)) {
+            const { userId, challengeId } = socketMap.get(socketId);
+
+            // Remove from challenge room
+            if (challengeRooms.has(challengeId)) {
+                const room = challengeRooms.get(challengeId);
+                room.delete(userId);
+                if (room.size === 0) {
+                    challengeRooms.delete(challengeId);
+                } else {
+                    // Notify remaining player? Maybe not needed if game already started
+                    // But if in lobby, we might want to know
+                }
+            }
+
+            socketMap.delete(socketId);
+            logger.info('Cleaned up user from challenge', { userId, challengeId, socketId });
+        }
+    };
 
     socket.on('challenge_submit_answer', async ({ challengeId, questionId, answer, timeTaken, currentQuestionIndex, userId }) => {
         try {

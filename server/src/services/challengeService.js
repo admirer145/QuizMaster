@@ -94,10 +94,11 @@ class ChallengeService {
             }
         });
 
-        const score1 = participant1.score || 0;
-        const score2 = participant2.score || 0;
-        const time1 = participant1.total_time_seconds || 0;
-        const time2 = participant2.total_time_seconds || 0;
+        // Explicitly convert to numbers to ensure proper comparison
+        const score1 = Number(participant1.score) || 0;
+        const score2 = Number(participant2.score) || 0;
+        const time1 = Number(participant1.total_time_seconds) || 0;
+        const time2 = Number(participant2.total_time_seconds) || 0;
 
         // Higher score wins
         if (score1 > score2) {
@@ -173,8 +174,8 @@ class ChallengeService {
                 await ChallengeRepository.updateChallengeStats(winnerId, 'won');
                 await ChallengeRepository.updateChallengeStats(loserId, 'lost');
             } else {
-                // Draw
-                await ChallengeRepository.updateChallengeStatus(challengeId, 'completed');
+                // Draw - set completed_at but keep status as 'active'
+                await ChallengeRepository.updateChallengeStatus(challengeId, 'active', { completed_at: new Date().toISOString() });
                 await ChallengeRepository.updateChallengeStats(participant1.user_id, 'drawn');
                 await ChallengeRepository.updateChallengeStats(participant2.user_id, 'drawn');
             }

@@ -17,12 +17,40 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
         fetchChallenges();
         fetchStats();
 
-        // Listen for challenge declined notifications
+        // Listen for challenge notifications
         const socket = io(API_URL);
+
+        // Listen for challenge declined notifications
         socket.on('challenge_declined', ({ creatorId, opponentUsername, quizTitle }) => {
             if (creatorId === user.id) {
                 showError(`${opponentUsername} declined your challenge for "${quizTitle}"`);
                 fetchChallenges(); // Refresh the list
+            }
+        });
+
+        // Listen for new challenge notifications (when someone challenges you)
+        socket.on('challenge_received', ({ challengeId, opponentId, creatorUsername, quizTitle }) => {
+            // Only show notification if this user is the opponent
+            if (opponentId === user.id) {
+                showSuccess(`🎯 ${creatorUsername} challenged you to "${quizTitle}"!`);
+                fetchChallenges(); // Refresh the list to show new challenge
+            }
+        });
+
+        // Listen for challenge cancelled notifications
+        socket.on('challenge_cancelled', ({ challengeId, opponentId }) => {
+            // Only refresh if this user is the opponent
+            if (opponentId === user.id) {
+                fetchChallenges(); // Refresh the list to remove cancelled challenge
+            }
+        });
+
+        // Listen for challenge accepted notifications
+        socket.on('challenge_accepted', ({ challengeId, creatorId, opponentUsername }) => {
+            // Only show notification and refresh if this user is the creator
+            if (creatorId === user.id) {
+                showSuccess(`🎮 ${opponentUsername} accepted your challenge!`);
+                fetchChallenges(); // Refresh the list to move to active tab
             }
         });
 
@@ -418,7 +446,7 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
                                 animation: 'pulse 2s infinite'
                             }}
                         >
-                            ⚡ Play Now!
+                            🎮 Join Now!
                         </button>
                     )}
 

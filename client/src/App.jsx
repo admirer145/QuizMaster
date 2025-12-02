@@ -513,6 +513,7 @@ const AppContent = () => {
       {view === 'challenges' && (
         <>
           <ChallengeHub
+            key={showChallengeCreator ? 'creating' : 'viewing'}
             onStartChallenge={startChallenge}
             onViewResults={viewChallengeResults}
             onCreateChallenge={() => setShowChallengeCreator(true)}
@@ -522,8 +523,8 @@ const AppContent = () => {
               onClose={() => setShowChallengeCreator(false)}
               onChallengeCreated={() => {
                 setShowChallengeCreator(false);
-                // Switch to challenges view and pending tab to show new challenge
-                setView('challenges');
+                // Force re-render of ChallengeHub to refresh the list
+                // The key change will trigger useEffect to fetch challenges again
               }}
             />
           )}

@@ -41,6 +41,17 @@ router.post('/create', authenticateToken, async (req, res) => {
         // Get full challenge details
         const challenge = await ChallengeRepository.getChallengeById(challengeId);
 
+        // Notify opponent via socket that they received a challenge
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('challenge_received', {
+                challengeId,
+                opponentId: opponent.id,
+                creatorUsername: req.user.username,
+                quizTitle: quiz.title
+            });
+        }
+
         res.status(201).json({
             message: 'Challenge created successfully',
             challenge
@@ -151,6 +162,17 @@ router.post('/:id/accept', authenticateToken, async (req, res) => {
             requestId: req.requestId
         });
 
+        // Notify creator via socket that challenge was accepted
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('challenge_accepted', {
+                challengeId,
+                creatorId: challenge.creator_id,
+                opponentUsername: challenge.opponent_username,
+                quizTitle: challenge.quiz_title
+            });
+        }
+
         res.json({ message: 'Challenge accepted', challengeId });
     } catch (err) {
         logger.error('Failed to accept challenge', {
@@ -237,6 +259,9 @@ router.delete('/:id/cancel', authenticateToken, async (req, res) => {
         const challengeId = req.params.id;
         const userId = req.user.id;
 
+        // Get challenge details before deletion for notification
+        const challenge = await ChallengeRepository.getChallengeById(challengeId);
+
         await ChallengeRepository.deleteChallenge(challengeId, userId);
 
         logger.info('Challenge cancelled', {
@@ -244,6 +269,19 @@ router.delete('/:id/cancel', authenticateToken, async (req, res) => {
             userId,
             requestId: req.requestId
         });
+
+        // Notify opponent via socket that challenge was cancelled
+        if (challenge) {
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('challenge_cancelled', {
+                    challengeId,
+                    opponentId: challenge.opponent_id,
+                    creatorUsername: challenge.creator_username,
+                    quizTitle: challenge.quiz_title
+                });
+            }
+        }
 
         res.json({ message: 'Challenge cancelled successfully' });
     } catch (err) {
