@@ -255,6 +255,70 @@ class QuizRepository {
             throw error;
         }
     }
+
+    /**
+     * Search quizzes for challenge creation
+     * Returns public approved quizzes + user's own quizzes
+     * @param {string} searchQuery - Search term
+     * @param {number} userId - Current user ID
+     * @param {string} filter - 'all' or 'mine'
+     * @returns {Promise<Array>}
+     */
+    async searchForChallenge(searchQuery, userId, filter = 'all') {
+        const searchPattern = `%${searchQuery}%`;
+
+        let whereCondition;
+
+        if (filter === 'mine') {
+            // Only user's own quizzes
+            whereCondition = {
+                creator_id: userId,
+                [Op.or]: [
+                    { title: { [Op.like]: searchPattern } },
+                    { category: { [Op.like]: searchPattern } }
+                ]
+            };
+        } else {
+            // Public approved quizzes OR user's own quizzes
+            whereCondition = {
+                [Op.and]: [
+                    {
+                        [Op.or]: [
+                            { title: { [Op.like]: searchPattern } },
+                            { category: { [Op.like]: searchPattern } }
+                        ]
+                    },
+                    {
+                        [Op.or]: [
+                            {
+                                is_public: true,
+                                status: 'approved'
+                            },
+                            { creator_id: userId }
+                        ]
+                    }
+                ]
+            };
+        }
+
+        return await Quiz.findAll({
+            where: whereCondition,
+            attributes: {
+                include: [
+                    [
+                        sequelize.literal('(SELECT COUNT(*) FROM questions WHERE questions.quiz_id = Quiz.id)'),
+                        'questionCount'
+                    ]
+                ]
+            },
+            order: [
+                // Prioritize user's own quizzes
+                [sequelize.literal(`CASE WHEN creator_id = ${userId} THEN 0 ELSE 1 END`), 'ASC'],
+                ['created_at', 'DESC']
+            ],
+            limit: 50 // Limit results to avoid overwhelming UI
+        });
+    }
 }
 
 module.exports = new QuizRepository();

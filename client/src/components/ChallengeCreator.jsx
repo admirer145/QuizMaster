@@ -13,29 +13,72 @@ const ChallengeCreator = ({ onClose, onChallengeCreated }) => {
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchFilter, setSearchFilter] = useState('all');
+    const [isSearching, setIsSearching] = useState(false);
 
     useEffect(() => {
         fetchQuizzes();
-    }, []);
+    }, [searchFilter]);
+
+    // Debounced search effect
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            performSearch();
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery, searchFilter]);
 
     const fetchQuizzes = async () => {
         try {
             setLoading(true);
-            const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-library`);
-            if (!response.ok) throw new Error('Failed to fetch quizzes');
 
-            const data = await response.json();
-            // Combine recently added and completed quizzes
-            const allQuizzes = [...(data.recentlyAdded || []), ...(data.completed || [])];
-            // Remove duplicates based on quiz ID
-            const uniqueQuizzes = allQuizzes.filter((quiz, index, self) =>
-                index === self.findIndex((q) => q.id === quiz.id)
-            );
-            setQuizzes(uniqueQuizzes);
+            if (searchFilter === 'mine') {
+                // Fetch only user's own quizzes
+                const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-quizzes`);
+                if (!response.ok) throw new Error('Failed to fetch quizzes');
+                const quizzes = await response.json();
+                setQuizzes(quizzes);
+            } else {
+                // Fetch library quizzes (default behavior)
+                const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-library`);
+                if (!response.ok) throw new Error('Failed to fetch quizzes');
+
+                const data = await response.json();
+                // Combine recently added and completed quizzes
+                const allQuizzes = [...(data.recentlyAdded || []), ...(data.completed || [])];
+                // Remove duplicates based on quiz ID
+                const uniqueQuizzes = allQuizzes.filter((quiz, index, self) =>
+                    index === self.findIndex((q) => q.id === quiz.id)
+                );
+                setQuizzes(uniqueQuizzes);
+            }
         } catch (err) {
             showError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const performSearch = async () => {
+        try {
+            setIsSearching(true);
+            const response = await fetchWithAuth(
+                `${API_URL}/api/quizzes/search-for-challenge?query=${encodeURIComponent(searchQuery)}&filter=${searchFilter}`
+            );
+            if (!response.ok) throw new Error('Failed to search quizzes');
+
+            const data = await response.json();
+            setQuizzes(data.quizzes || []);
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            setIsSearching(false);
         }
     };
 
@@ -84,13 +127,91 @@ const ChallengeCreator = ({ onClose, onChallengeCreated }) => {
         <div>
             <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Select a Quiz</h3>
 
-            {loading ? (
+            {/* Search Bar */}
+            <div style={{ marginBottom: '1rem' }}>
+                <div style={{ position: 'relative' }}>
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search quizzes..."
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem 2.5rem 0.75rem 1rem',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '1rem'
+                        }}
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            style={{
+                                position: 'absolute',
+                                right: '0.5rem',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                fontSize: '1.2rem',
+                                padding: '0.25rem 0.5rem'
+                            }}
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Filter Toggle */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <button
+                    onClick={() => setSearchFilter('all')}
+                    style={{
+                        flex: 1,
+                        background: searchFilter === 'all' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: searchFilter === 'all' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid var(--glass-border)',
+                        color: searchFilter === 'all' ? '#a5b4fc' : 'var(--text-muted)',
+                        padding: '0.5rem',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    🌐 All Quizzes
+                </button>
+                <button
+                    onClick={() => setSearchFilter('mine')}
+                    style={{
+                        flex: 1,
+                        background: searchFilter === 'mine' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: searchFilter === 'mine' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid var(--glass-border)',
+                        color: searchFilter === 'mine' ? '#a5b4fc' : 'var(--text-muted)',
+                        padding: '0.5rem',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    📝 My Quizzes
+                </button>
+            </div>
+
+            {(loading || isSearching) ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    Loading quizzes...
+                    {isSearching ? 'Searching...' : 'Loading quizzes...'}
                 </div>
             ) : quizzes.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    <p>No quizzes available. Add some quizzes to your library first!</p>
+                    <p>{searchQuery ? 'No quizzes found matching your search.' : 'No quizzes available. Add some quizzes to your library first!'}</p>
                 </div>
             ) : (
                 <div style={{
@@ -157,6 +278,16 @@ const ChallengeCreator = ({ onClose, onChallengeCreated }) => {
                                             padding: '0.25rem 0.5rem'
                                         }}>
                                             📝 {quiz.questionCount || 0} questions
+                                        </span>
+                                        <span style={{
+                                            background: quiz.is_public ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                            border: quiz.is_public ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)',
+                                            color: quiz.is_public ? '#22c55e' : '#94a3b8',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            {quiz.is_public ? '🌐 Public' : '🔒 Private'}
                                         </span>
                                     </div>
                                 </div>

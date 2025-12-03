@@ -54,6 +54,14 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
             }
         });
 
+        // Listen for opponent joining lobby
+        socket.on('opponent_joined', ({ userId: opponentUserId, username }) => {
+            // Only show notification if the opponent is not the current user
+            if (opponentUserId !== user.id) {
+                showSuccess(`🎮 ${username} joined the lobby! Get ready!`);
+            }
+        });
+
         return () => {
             socket.close();
         };
@@ -105,6 +113,7 @@ const ChallengeHub = ({ onStartChallenge, onViewResults, onCreateChallenge }) =>
             if (!response.ok) throw new Error('Failed to accept challenge');
 
             showSuccess('Challenge accepted! Ready to play!');
+            setActiveTab('active'); // Switch to active tab
             fetchChallenges();
         } catch (err) {
             showError(err.message);

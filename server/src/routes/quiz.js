@@ -216,6 +216,34 @@ router.get('/my-library', authenticateToken, async (req, res) => {
     }
 });
 
+// Search quizzes for challenge creation
+router.get('/search-for-challenge', authenticateToken, async (req, res) => {
+    try {
+        const QuizRepository = require('../repositories/QuizRepository');
+        const userId = req.user.id;
+        const { query, filter = 'all' } = req.query;
+
+        if (!query || query.trim().length === 0) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        if (!['all', 'mine'].includes(filter)) {
+            return res.status(400).json({ error: 'Invalid filter. Must be "all" or "mine"' });
+        }
+
+        const quizzes = await QuizRepository.searchForChallenge(query.trim(), userId, filter);
+
+        res.json({ quizzes });
+    } catch (err) {
+        logger.error('Quiz search for challenge failed', {
+            error: err,
+            context: { query: req.query.query, userId: req.user.id },
+            requestId: req.requestId
+        });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Get all quizzes (Admin/Debug or public fallback? Keeping as is for now but maybe restrict?)
 // For now, let's keep it but maybe it should only return public ones? 
 // The requirement says "any other user can search for any topics... and pull those quizzes".
