@@ -25,17 +25,56 @@ import TermsOfService from './components/TermsOfService';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
-  const [view, setView] = useState('home'); // home, menu, game, leaderboard, report, attempts, my-quizzes, creator, hub, ai-generator, review, profile, challenges, challenge-game, challenge-results
-  const [activeQuizId, setActiveQuizId] = useState(null);
-  const [activeResultId, setActiveResultId] = useState(null);
-  const [editQuizId, setEditQuizId] = useState(null);
-  const [activeChallengeId, setActiveChallengeId] = useState(null);
+
+  // Helper to get persisted state
+  const getPersistedState = (key, defaultValue) => {
+    const saved = localStorage.getItem(key);
+    if (saved === null) return defaultValue;
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      return defaultValue;
+    }
+  };
+
+  // Initialize state from localStorage
+  const [view, setView] = useState(() => getPersistedState('app_view', 'home'));
+  const [activeQuizId, setActiveQuizId] = useState(() => getPersistedState('app_activeQuizId', null));
+  const [activeResultId, setActiveResultId] = useState(() => getPersistedState('app_activeResultId', null));
+  const [editQuizId, setEditQuizId] = useState(() => getPersistedState('app_editQuizId', null));
+  const [activeChallengeId, setActiveChallengeId] = useState(() => getPersistedState('app_activeChallengeId', null));
+  const [viewedUserId, setViewedUserId] = useState(() => getPersistedState('app_viewedUserId', null));
+  const [previousView, setPreviousView] = useState(() => getPersistedState('app_previousView', 'leaderboard'));
+
   const [showChallengeCreator, setShowChallengeCreator] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
-  const [viewedUserId, setViewedUserId] = useState(null); // For viewing other users' profiles
-  const [previousView, setPreviousView] = useState('leaderboard'); // Track where we came from
+
+  // Persist state changes
+  React.useEffect(() => {
+    localStorage.setItem('app_view', JSON.stringify(view));
+    localStorage.setItem('app_activeQuizId', JSON.stringify(activeQuizId));
+    localStorage.setItem('app_activeResultId', JSON.stringify(activeResultId));
+    localStorage.setItem('app_editQuizId', JSON.stringify(editQuizId));
+    localStorage.setItem('app_activeChallengeId', JSON.stringify(activeChallengeId));
+    localStorage.setItem('app_viewedUserId', JSON.stringify(viewedUserId));
+    localStorage.setItem('app_previousView', JSON.stringify(previousView));
+  }, [view, activeQuizId, activeResultId, editQuizId, activeChallengeId, viewedUserId, previousView]);
+
+  const handleLogout = () => {
+    // Clear app state on logout
+    localStorage.removeItem('app_view');
+    localStorage.removeItem('app_activeQuizId');
+    localStorage.removeItem('app_activeResultId');
+    localStorage.removeItem('app_editQuizId');
+    localStorage.removeItem('app_activeChallengeId');
+    localStorage.removeItem('app_viewedUserId');
+    localStorage.removeItem('app_previousView');
+
+    logout();
+    setView('home');
+  };
 
   // Handle hash-based routing for legal documents
   React.useEffect(() => {
@@ -413,7 +452,7 @@ const AppContent = () => {
               🏆 Leaderboard
             </button>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               style={{
                 padding: '0.5rem 1rem',
                 fontSize: '0.9rem',
