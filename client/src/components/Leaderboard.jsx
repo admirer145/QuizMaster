@@ -27,12 +27,18 @@ const Leaderboard = ({ onBack, onViewProfile }) => {
                     // Get the most recent completed quiz
                     if (data.completed && data.completed.length > 0) {
                         const mostRecent = data.completed[0];
+                        // Set both search and initialLoadDone together to prevent flicker
                         setSearch(prev => ({ ...prev, quiz: mostRecent.title }));
+                        setInitialLoadDone(true);
+                    } else {
+                        // No completed quizzes, just mark as done
+                        setInitialLoadDone(true);
                     }
+                } else {
+                    setInitialLoadDone(true);
                 }
             } catch (err) {
                 console.error('Failed to fetch recent quiz:', err);
-            } finally {
                 setInitialLoadDone(true);
             }
         };
