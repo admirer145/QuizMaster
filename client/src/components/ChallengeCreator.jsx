@@ -45,18 +45,13 @@ const ChallengeCreator = ({ onClose, onChallengeCreated }) => {
                 const quizzes = await response.json();
                 setQuizzes(quizzes);
             } else {
-                // Fetch library quizzes (default behavior)
-                const response = await fetchWithAuth(`${API_URL}/api/quizzes/my-library`);
+                // Fetch all public quizzes (top 10 by likes)
+                const response = await fetchWithAuth(`${API_URL}/api/quizzes/public`);
                 if (!response.ok) throw new Error('Failed to fetch quizzes');
 
                 const data = await response.json();
-                // Combine recently added and completed quizzes
-                const allQuizzes = [...(data.recentlyAdded || []), ...(data.completed || [])];
-                // Remove duplicates based on quiz ID
-                const uniqueQuizzes = allQuizzes.filter((quiz, index, self) =>
-                    index === self.findIndex((q) => q.id === quiz.id)
-                );
-                setQuizzes(uniqueQuizzes);
+                // The endpoint returns an array directly
+                setQuizzes(Array.isArray(data) ? data : []);
             }
         } catch (err) {
             showError(err.message);

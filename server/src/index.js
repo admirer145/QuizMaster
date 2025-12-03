@@ -315,8 +315,10 @@ io.on('connection', (socket) => {
                 if (room.size === 0) {
                     challengeRooms.delete(challengeId);
                 } else {
-                    // Notify remaining player? Maybe not needed if game already started
-                    // But if in lobby, we might want to know
+                    // Notify remaining player
+                    const roomId = `challenge_${challengeId}`;
+                    io.to(roomId).emit('opponent_left', { userId });
+                    logger.info('Notified room about user leaving', { roomId, userId });
                 }
             }
 
@@ -384,18 +386,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('challenge_complete', async ({ challengeId, userId, finalScore, totalTime, resultId }) => {
+    socket.on('challenge_complete', async ({ challengeId, userId, finalScore, totalTime }) => {
         try {
             // Update participant as completed
             await ChallengeRepository.markParticipantCompleted(challengeId, userId);
 
-            // Update final score and time
+            // Update final score and time (no resultId since challenges don't create regular results)
             await ChallengeRepository.updateParticipantScore(
                 challengeId,
                 userId,
                 finalScore,
                 totalTime,
-                resultId
+                null // resultId is null for challenges
             );
 
             logger.info('User completed challenge', {

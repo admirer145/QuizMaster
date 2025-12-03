@@ -19,7 +19,7 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     const [quizStartTime] = useState(Date.now());
     const [opponentFinished, setOpponentFinished] = useState(false);
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
-    const [resultId, setResultId] = useState(null);
+
     const [waitingInLobby, setWaitingInLobby] = useState(true);
     const [opponentJoined, setOpponentJoined] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
@@ -145,8 +145,8 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
 
         // Listen for challenge finished
         newSocket.on('challenge_finished', ({ winnerId, result, participants }) => {
-            setGameOver(true);
-            setWaitingForOpponent(false);
+            // Directly navigate to results without showing intermediate screen
+            onShowResults(challengeId);
         });
 
         // Listen for force end
@@ -167,6 +167,14 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
             }, 2000);
         });
 
+        // Listen for opponent leaving
+        newSocket.on('opponent_left', () => {
+            console.log('Opponent left the challenge');
+            setOpponentJoined(false);
+            setWaitingForOpponent(false);
+            setOpponentFinished(true);
+        });
+
         // Join challenge room and notify about joining
         newSocket.emit('join_challenge', { userId: user.id, challengeId, username: user.username });
 
@@ -185,27 +193,26 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
 
     // Timer
     useEffect(() => {
-        if (timeLeft > 0 && !gameOver && !feedback) {
+        if (gameStarted && timeLeft > 0 && !gameOver && !feedback) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timer);
-        } else if (timeLeft === 0 && !gameOver && !feedback) {
+        } else if (gameStarted && timeLeft === 0 && !gameOver && !feedback) {
             handleNextQuestion();
         }
-    }, [timeLeft, gameOver, feedback]);
+    }, [timeLeft, gameOver, feedback, gameStarted]);
 
     // Handle quiz completion
     useEffect(() => {
-        if (gameOver && socketRef.current && resultId) {
+        if (gameOver && socketRef.current) {
             const totalTime = Math.floor((Date.now() - quizStartTime) / 1000);
             socketRef.current.emit('challenge_complete', {
                 challengeId,
                 userId: user.id,
                 finalScore: scoreRef.current,
-                totalTime,
-                resultId
+                totalTime
             });
         }
-    }, [gameOver, resultId, challengeId, quizStartTime, user.id]);
+    }, [gameOver, challengeId, quizStartTime, user.id]);
 
     const handleNextQuestion = () => {
         setCurrentQuestionIndex(prev => {
@@ -221,35 +228,12 @@ const ChallengeGame = ({ challengeId, quizId, onEndGame, onShowResults }) => {
     };
 
     const saveResult = async () => {
-        try {
-            const totalQuestions = quiz.questions.length;
-            const maxScore = totalQuestions * 10;
-            const actualPercentage = totalQuestions > 0 ? Math.round((scoreRef.current / maxScore) * 100) : 0;
-
-            const response = await fetchWithAuth(`${API_URL}/api/results`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    quizId,
-                    score: scoreRef.current,
-                    percentage: actualPercentage
-                })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setResultId(data.resultId);
-                setGameOver(true);
-                // Don't set waitingForOpponent here - let challenge_finished event handle it
-                // If opponent already finished, we'll get challenge_finished immediately
-                // Otherwise, we'll wait for them
-                if (!opponentFinished) {
-                    setWaitingForOpponent(true);
-                }
-            }
-        } catch (err) {
-            console.error('Failed to save result:', err);
-            setGameOver(true);
+        // For challenges, we don't create regular quiz results
+        // The challenge completion is tracked in challenge_participants table
+        // This prevents challenges from affecting the home page and leaderboard
+        setGameOver(true);
+        if (!opponentFinished) {
+            setWaitingForOpponent(true);
         }
     };
 

@@ -18,23 +18,8 @@ class ChallengeService {
             throw new Error('Quiz must have at least one question');
         }
 
+
         const db = require('../db');
-
-        // Check if creator has already completed this quiz
-        const creatorResult = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT id FROM results WHERE user_id = ? AND quiz_id = ? LIMIT 1',
-                [creatorId, quizId],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
-
-        if (creatorResult) {
-            throw new Error('You cannot create a challenge for a quiz you have already completed');
-        }
 
         // Get opponent by username
         const opponent = await new Promise((resolve, reject) => {

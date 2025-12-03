@@ -92,6 +92,11 @@ const AppContent = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Scroll to top when view changes
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
