@@ -1,6 +1,6 @@
 const express = require('express');
 const logger = require('../utils/logger');
-const authenticateToken = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const analyticsService = require('../services/analyticsService');
 const achievementService = require('../services/achievementService');
 const cache = require('../utils/cache');

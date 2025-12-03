@@ -273,7 +273,12 @@ const DataManagement = () => {
                                     ...buttonStyle,
                                     background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                                     color: 'white',
-                                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+                                    width: '100%',
+                                    whiteSpace: 'normal',
+                                    wordWrap: 'break-word',
+                                    textAlign: 'center',
+                                    lineHeight: '1.4'
                                 }}
                                 onClick={() => setShowDeleteConfirm(true)}
                                 disabled={loading}
@@ -299,7 +304,14 @@ const DataManagement = () => {
                                 This action cannot be undone. All your data, quizzes, results, and stats will be wiped out immediately.
                             </p>
                             <button
-                                style={dangerButtonStyle}
+                                style={{
+                                    ...dangerButtonStyle,
+                                    width: '100%',
+                                    whiteSpace: 'normal',
+                                    wordWrap: 'break-word',
+                                    textAlign: 'center',
+                                    lineHeight: '1.4'
+                                }}
                                 onClick={() => setShowImmediateDeleteConfirm(true)}
                                 disabled={loading}
                                 onMouseEnter={(e) => !loading && (e.target.style.transform = 'translateY(-2px)')}

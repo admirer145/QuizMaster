@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db');
-const authenticateToken = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const cache = require('../utils/cache');
 const { validateSearch } = require('../middleware/inputValidator');
 

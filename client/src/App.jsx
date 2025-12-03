@@ -92,6 +92,43 @@ const AppContent = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Handle browser back/forward navigation
+  React.useEffect(() => {
+    // Push initial state
+    if (!window.history.state) {
+      window.history.replaceState({ view, activeQuizId, activeResultId, editQuizId, activeChallengeId, viewedUserId }, '');
+    }
+
+    const handlePopState = (event) => {
+      if (event.state) {
+        // Restore state from history
+        setView(event.state.view || 'home');
+        setActiveQuizId(event.state.activeQuizId || null);
+        setActiveResultId(event.state.activeResultId || null);
+        setEditQuizId(event.state.editQuizId || null);
+        setActiveChallengeId(event.state.activeChallengeId || null);
+        setViewedUserId(event.state.viewedUserId || null);
+      } else {
+        // No state means we're at the beginning - go to home
+        setView('home');
+        setActiveQuizId(null);
+        setActiveResultId(null);
+        setEditQuizId(null);
+        setActiveChallengeId(null);
+        setViewedUserId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Push state to history when view changes
+  React.useEffect(() => {
+    const state = { view, activeQuizId, activeResultId, editQuizId, activeChallengeId, viewedUserId };
+    window.history.pushState(state, '');
+  }, [view, activeQuizId, activeResultId, editQuizId, activeChallengeId, viewedUserId]);
+
   // Scroll to top when view changes
   React.useEffect(() => {
     window.scrollTo(0, 0);

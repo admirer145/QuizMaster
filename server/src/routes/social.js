@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/authMiddleware');
+const { authenticateToken, optionalAuthenticateToken } = require('../middleware/authMiddleware');
 const socialService = require('../services/socialService');
 const SocialRepository = require('../repositories/SocialRepository');
 const logger = require('../utils/logger');
@@ -253,7 +253,7 @@ router.get('/top-creators', async (req, res) => {
 });
 
 // Get user profile with social stats
-router.get('/profile/:userId', async (req, res) => {
+router.get('/profile/:userId', optionalAuthenticateToken, async (req, res) => {
     try {
         const userId = parseInt(req.params.userId);
         const currentUserId = req.user?.id || null;

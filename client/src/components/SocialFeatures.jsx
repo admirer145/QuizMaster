@@ -10,6 +10,11 @@ export const FollowButton = ({ userId, initialFollowing = false, onFollowChange 
     const [isFollowing, setIsFollowing] = useState(initialFollowing);
     const [loading, setLoading] = useState(false);
 
+    // Sync state when initialFollowing prop changes (e.g., on refresh or navigation)
+    useEffect(() => {
+        setIsFollowing(initialFollowing);
+    }, [initialFollowing]);
+
     const handleToggleFollow = async () => {
         setLoading(true);
         try {

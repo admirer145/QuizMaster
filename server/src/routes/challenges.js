@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 const ChallengeRepository = require('../repositories/ChallengeRepository');
 const ChallengeService = require('../services/challengeService');
 const logger = require('../utils/logger');
